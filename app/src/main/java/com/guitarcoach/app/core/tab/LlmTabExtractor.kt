@@ -3,7 +3,7 @@ package com.guitarcoach.app.core.tab
 import com.guitarcoach.app.core.coach.CoachPrompts
 import com.guitarcoach.app.core.llm.ChatSpec
 import com.guitarcoach.app.core.llm.EncodedImage
-import com.guitarcoach.app.core.llm.LlmClient
+import com.guitarcoach.app.core.llm.LlmFallback
 import kotlinx.serialization.json.Json
 
 /**
@@ -12,7 +12,7 @@ import kotlinx.serialization.json.Json
  * 关键设计：不让模型直接“讲谱”，而是先产出严格 JSON，App 做合法性校验后入库；
  * 讲解再基于结构化数据分层进行 —— 准确性可校验、谱面可回放、讲解可重试。
  */
-class LlmTabExtractor(private val visionClient: suspend () -> LlmClient) {
+class LlmTabExtractor(private val visionChain: suspend () -> List<com.guitarcoach.app.core.llm.LlmClient>) {
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -21,8 +21,7 @@ class LlmTabExtractor(private val visionClient: suspend () -> LlmClient) {
     }
 
     suspend fun extract(imageBase64: String): ExtractResult {
-        val client = visionClient()
-        val raw = client.complete(
+        val raw = LlmFallback.completeWithFallback(visionChain()) {
             ChatSpec(
                 system = CoachPrompts.TAB_TO_JSON,
                 user = "请识别这张吉他六线谱图片，只输出 JSON。",
@@ -31,7 +30,7 @@ class LlmTabExtractor(private val visionClient: suspend () -> LlmClient) {
                 temperature = 0.1,
                 jsonMode = true,
             )
-        )
+        }
         val doc = json.decodeFromString<TabDocument>(extractJsonBlock(raw))
         return clean(doc)
     }

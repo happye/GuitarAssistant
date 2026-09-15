@@ -1,5 +1,10 @@
 package com.guitarcoach.app.ui.screens
 
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,33 +16,98 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import com.guitarcoach.app.core.tab.ExtractResult
 import com.guitarcoach.app.core.tab.TabDocument
 import com.guitarcoach.app.core.tab.TextTabParser
 import com.guitarcoach.app.core.tab.midi
 import com.guitarcoach.app.core.tab.midiToName
+import com.guitarcoach.app.core.vision.FrameCodec
+import com.guitarcoach.app.data.AppContainer
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
- * F102 识谱工作台（M1 阶段）：粘贴 ASCII 六线谱 → TextTabParser 解析 → 结构化展示。
- * 每颗音标注「弦-品-实际音名」，帮助初学者把谱面和指板上位置对上号。
- * 拍谱识谱（视觉链）与 Guitar Pro 导入在 M2 接入；播放/试听在 M1 后续特性。
+ * F201 识谱工作台：
+ *  - 文本谱路径（F104）：粘贴 UG 风格六线谱 → TextTabParser
+ *  - 拍谱路径（F201，M2 新增）：拍照/相册 → FrameCodec 压缩 → LlmTabExtractor（视觉链）
+ *    → 严格 JSON → 合法性过滤 → TabDocument；识别结果可「AI 讲解怎么弹」（explainTabImage 流式）
  */
 @Composable
-fun TabStudioScreen() {
+fun TabStudioScreen(container: AppContainer) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // —— 文本谱路径（F104）——
     var pasteText by remember { mutableStateOf("") }
     var document by remember { mutableStateOf<TabDocument?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+
+    // —— 拍谱路径（F201）——
+    var imageBase64 by remember { mutableStateOf<String?>(null) }
+    var extracting by remember { mutableStateOf(false) }
+    var extractError by remember { mutableStateOf<String?>(null) }
+    var extracted by remember { mutableStateOf<ExtractResult?>(null) }
+    var explainText by remember { mutableStateOf<String?>(null) }
+    var explaining by remember { mutableStateOf(false) }
+    var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
+
+    fun extractFrom(uri: Uri) {
+        scope.launch {
+            extracting = true
+            extractError = null
+            extracted = null
+            explainText = null
+            try {
+                val base64 = withContext(Dispatchers.IO) {
+                    val bitmap = context.contentResolver.openInputStream(uri)?.use {
+                        BitmapFactory.decodeStream(it)
+                    } ?: throw IllegalArgumentException("图片读取失败，请重试")
+                    FrameCodec.toBase64Jpeg(bitmap).also { bitmap.recycle() }
+                }
+                imageBase64 = base64
+                extracted = container.tabExtractor.extract(base64)
+            } catch (e: Exception) {
+                extractError = e.message ?: "识谱失败，请重试"
+            } finally {
+                extracting = false
+            }
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        if (ok) pendingCaptureUri?.let { extractFrom(it) }
+    }
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { extractFrom(it) }
+    }
+
+    fun launchCamera() {
+        val dir = File(context.cacheDir, "captures").apply { mkdirs() }
+        val file = File(dir, "shot_${System.currentTimeMillis()}.jpg")
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        pendingCaptureUri = uri
+        cameraLauncher.launch(uri)
+    }
 
     Column(
         modifier = Modifier
@@ -47,11 +117,73 @@ fun TabStudioScreen() {
     ) {
         Text("识谱工作台", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "M1 先支持粘贴文本六线谱（Ultimate Guitar 风格）；拍谱识谱在 M2 接入。",
+            "拍一张谱（或从相册选图）→ AI 识别成结构化谱面 → 逐小节展示与讲解；也支持粘贴文本谱。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
+        // —— 拍谱路径 ——
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text("拍谱识谱", style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { launchCamera() }, enabled = !extracting) { Text("拍照") }
+                    OutlinedButton(
+                        onClick = {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        enabled = !extracting,
+                    ) { Text("相册选图") }
+                    if (extracting) CircularProgressIndicator(Modifier.padding(top = 12.dp))
+                }
+                extractError?.let {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Text("❌ $it", modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                extracted?.let { result ->
+                    result.warnings.forEach { warning ->
+                        Text(
+                            "⚠️ $warning",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    val base = imageBase64
+                    TextButton(
+                        enabled = base != null && !explaining,
+                        onClick = {
+                            if (base != null) {
+                                explaining = true
+                                explainText = ""
+                                scope.launch {
+                                    try {
+                                        container.coach.explainTabImage(base).collect { delta ->
+                                            explainText = (explainText ?: "") + delta
+                                        }
+                                    } catch (e: Exception) {
+                                        explainText = (explainText ?: "") + "\n\n❌ ${e.message ?: "讲解失败"}"
+                                    } finally {
+                                        explaining = false
+                                    }
+                                }
+                            }
+                        },
+                    ) { Text(if (explaining) "讲解生成中…" else "让 AI 讲解这张谱怎么弹") }
+                }
+            }
+        }
+
+        // —— 文本谱路径 ——
         OutlinedTextField(
             value = pasteText,
             onValueChange = { pasteText = it },
@@ -60,7 +192,7 @@ fun TabStudioScreen() {
                 .heightIn(min = 120.dp),
             placeholder = {
                 Text(
-                    "粘贴六线谱，例如：\ne|--------3---|\nB|------3---3-|\nG|----0-------|\nD|--0---------|\nA|------------|\nE|------------|",
+                    "或粘贴六线谱，例如：\ne|--------3---|\nB|------3---3-|\nG|----0-------|\nD|--0---------|\nA|------------|\nE|------------|",
                     style = MaterialTheme.typography.bodySmall,
                 )
             },
@@ -79,7 +211,7 @@ fun TabStudioScreen() {
                     }
                 },
                 enabled = pasteText.isNotBlank(),
-            ) { Text("解析") }
+            ) { Text("解析文本谱") }
         }
 
         error?.let {
@@ -92,9 +224,14 @@ fun TabStudioScreen() {
             }
         }
 
-        document?.let { doc ->
+        // 展示（拍谱结果优先，其次文本谱结果）
+        (extracted?.document ?: document)?.let { doc ->
             ParsedTabList(doc, modifier = Modifier.weight(1f))
         }
+    }
+
+    explainText?.let { text ->
+        TabExplainDialog(text = text.ifBlank { "…" }, loading = explaining, onDismiss = { if (!explaining) explainText = null })
     }
 }
 
@@ -129,7 +266,7 @@ private fun ParsedTabList(doc: TabDocument, modifier: Modifier = Modifier) {
         if (totalNotes == 0) {
             item(key = "empty-hint") {
                 Text(
-                    "没有识别到音符——检查粘贴内容是否为 6 行弦线 + 数字的格式。",
+                    "没有识别到音符——检查谱面是否清晰，或换一张重试。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
