@@ -70,7 +70,7 @@ fun CoachApp(container: AppContainer) {
             composable("home") { HomeScreen(container) }
             composable("practice") { PracticeScreen() }
             composable("tabs") { TabStudioScreen() }
-            composable("theory") { TheoryScreen() }
+            composable("theory") { TheoryScreen(container) }
             composable("me") { ProfileScreen() }
         }
     }
