@@ -60,6 +60,7 @@ fun TheoryScreen(container: AppContainer) {
     var showSessions by remember { mutableStateOf(false) }
     var showCards by remember { mutableStateOf(false) }
     var showFretboard by remember { mutableStateOf(false) }
+    var showTranspose by remember { mutableStateOf(false) }
     var renameTarget by remember { mutableStateOf<com.guitarcoach.app.data.db.ConversationEntity?>(null) }
     val listState = rememberLazyListState()
 
@@ -144,6 +145,7 @@ fun TheoryScreen(container: AppContainer) {
         ) {
             TextButton(onClick = { showCards = true }) { Text("概念卡片") }
             TextButton(onClick = { showFretboard = true }) { Text("指板可视化") }
+            TextButton(onClick = { showTranspose = true }) { Text("移调/变调夹") }
         }
 
         LazyColumn(
@@ -232,6 +234,9 @@ fun TheoryScreen(container: AppContainer) {
     }
     if (showFretboard) {
         FretboardDialog(onDismiss = { showFretboard = false })
+    }
+    if (showTranspose) {
+        TransposeDialog(onDismiss = { showTranspose = false })
     }
     renameTarget?.let { target ->
         RenameDialog(
