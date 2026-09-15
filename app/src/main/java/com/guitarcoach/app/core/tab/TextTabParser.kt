@@ -28,26 +28,18 @@ object TextTabParser {
         for (block in blocks) {
             val byString = block.associate { (string, body) -> string to body }
             if (byString.size < 4) continue // 至少 4 根弦的行才认为是谱块
-            val longest = byString.values.maxOf { it.length }
             val notes = mutableListOf<NoteEvent>()
 
-            var col = 0
-            while (col < longest) {
-                for ((string, body) in byString) {
-                    if (col >= body.length) continue
-                    if (body[col].isDigit()) {
-                        var value = 0
-                        var c = col
-                        while (c < body.length && body[c].isDigit()) {
-                            value = value * 10 + (body[c] - '0')
-                            c++
-                        }
-                        if (value in 0..24) {
-                            notes.add(NoteEvent(string = string, fret = value, beat = col / 4.0))
-                        }
+            // 每根弦独立扫描数字段：整段一次读完，避免逐列扫描把多位数（如 10、12 品）
+            // 拆成多次误读；beat 用数字段的起始列位置近似时序。
+            val digitRun = Regex("\\d+")
+            for ((string, body) in byString) {
+                for (match in digitRun.findAll(body)) {
+                    val value = match.value.toInt()
+                    if (value in 0..24) {
+                        notes.add(NoteEvent(string = string, fret = value, beat = match.range.first / 4.0))
                     }
                 }
-                col++
             }
             if (notes.isNotEmpty()) {
                 bars.add(TabBar(notes.sortedBy { it.beat }))
