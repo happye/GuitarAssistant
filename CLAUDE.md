@@ -4,6 +4,7 @@
 
 ## 开工检查
 
+- **新对话/交接：先读根目录 [HANDOFF.md](HANDOFF.md)**（状态快照 + 多 Agent 机制 + 信息地图），再走下面三步
 - 先读 ./AGENTS.md，尤其「架构红线」「工程纪律」两节；会话协议见 docs/agents/session-protocol.md
 - 会话开始三件事：`git log --oneline -10` → 读 progress.md → 读 feature_list.json 选一个 pending 特性（一次只做一个）
 - 构建/测试统一走 ./scripts/build.sh（用法见 AGENTS.md「开发环境」）；该脚本缺位时先用 `./gradlew` 并在报告里说明
