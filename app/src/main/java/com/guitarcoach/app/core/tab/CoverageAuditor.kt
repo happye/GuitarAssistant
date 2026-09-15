@@ -1,6 +1,9 @@
 package com.guitarcoach.app.core.tab
 
+import kotlinx.serialization.Serializable
+
 /** 音符引用：全局小节号（1 起）+ 弦 + 品。 */
+@Serializable
 data class NoteRef(val bar: Int, val string: Int, val fret: Int)
 
 /**

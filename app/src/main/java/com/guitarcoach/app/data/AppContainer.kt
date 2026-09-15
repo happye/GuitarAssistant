@@ -44,6 +44,9 @@ class AppContainer(context: Context) {
     val chatRepository by lazy { ChatRepository(database) }
     val practiceRepository by lazy { PracticeRepository(database) }
 
+    // 逐句讲解本地缓存（F208）：离线回看
+    val phraseCache by lazy { com.guitarcoach.app.data.PhraseCache(appContext.filesDir) }
+
     fun shutdown() {
         appScope.cancel()
     }

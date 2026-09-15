@@ -74,6 +74,7 @@ fun TabStudioScreen(container: AppContainer) {
     var extracting by remember { mutableStateOf(false) }
     var extractError by remember { mutableStateOf<String?>(null) }
     var extracted by remember { mutableStateOf<ExtractResult?>(null) }
+    var imageBase64 by remember { mutableStateOf<String?>(null) } // 仅用于 F208 原图对照（讲解不看图，F204）
     var explainText by remember { mutableStateOf<String?>(null) }
     var explaining by remember { mutableStateOf(false) }
     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
@@ -95,6 +96,7 @@ fun TabStudioScreen(container: AppContainer) {
                     } ?: throw IllegalArgumentException("图片读取失败，请重试")
                     FrameCodec.toBase64Jpeg(bitmap).also { bitmap.recycle() }
                 }
+                imageBase64 = base64
                 extracted = container.tabExtractor.extract(base64)
             } catch (e: Exception) {
                 extractError = e.message ?: "识谱失败，请重试"
@@ -194,9 +196,9 @@ fun TabStudioScreen(container: AppContainer) {
                             }
                         },
                     ) { Text(if (explaining) "讲解生成中…" else "让 AI 讲解这张谱怎么弹") }
-                    // F207：逐句大白话讲解（只基于已识别的结构化谱面，带覆盖审计）
+                    // F207/F208：逐句大白话讲解（只基于已识别的结构化谱面，带覆盖审计与缓存）
                     if (result.document.sections.any { it.bars.isNotEmpty() }) {
-                        PhraseCoachSection(container = container, doc = result.document)
+                        PhraseCoachSection(container = container, doc = result.document, imageBase64 = imageBase64)
                     }
                 }
             }
