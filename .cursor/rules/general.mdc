@@ -1,0 +1,25 @@
+---
+description: GuitarCoach 项目通用规范（Cursor）
+globs: []
+alwaysApply: true
+---
+
+# 项目通用规范
+
+> 完整 Agent 指令见 ./AGENTS.md（单一信源），本文件只放 Cursor 工作要点，不重复其内容。
+> 开工前先读 AGENTS.md 的「架构红线」与「工程纪律」两节。
+
+## 要点
+
+- 技术栈：Kotlin + Jetpack Compose（Material3），minSdk 26 / compileSdk 36 / JDK 17
+- 构建：`./scripts/build.sh <gradle 参数>`；产物 `app/build/outputs/apk/debug/app-debug.apk`
+- 会话开始：读 progress.md 与 feature_list.json，一次只做一个 pending 特性
+- 会话收尾：新教训落 `.learnings/LEARNINGS.md`（必须带防复发措施）
+- 模型接入方式见 `docs/模型API接入手册.md`，不要在代码/配置里写死端点与密钥
+
+## 禁止事项
+
+- 不要在 Kotlin 代码里内联 system prompt（提示词只放 core/coach/CoachPrompts）
+- 不要引入 GPL/LGPL/AGPL 依赖；新增依赖先核许可证（Apache/MIT/BSD 才可）
+- 不要把密钥写进任何被 git 跟踪的文件（密钥位置：local.properties / App DataStore）
+- 不要绕过 TabDocument 直接操作谱面数据

@@ -1,0 +1,16 @@
+---
+description: core/* 感知与网关层的依赖红线（编辑 core 下文件时激活）
+globs: ["app/src/main/java/com/guitarcoach/app/core/**"]
+alwaysApply: false
+---
+
+# core/* 层规则
+
+> 分层依据与依赖矩阵见 docs/design-docs/architecture.md；红线清单见 AGENTS.md「架构红线」。
+
+- `core/llm` 不得 import coach / tab / vision / audio / data / ui；它只认 ChatSpec 与 LlmClient 抽象
+- `core/coach`、`core/tab` 可依赖 `core/llm`；`core/vision`、`core/audio` 保持纯端侧，不加 LLM 依赖
+- core 内任何模块不得 import `data/` 与 `ui/`
+- 结构化输出解析放对应模块：手势点评 JSON 在 `CoachFeedback`，识谱 JSON 在 `LlmTabExtractor`；识谱产物必须过合法性过滤（弦 1-6 / 品 0-24，非法丢弃）再进 TabDocument
+- 模型参数显式传，不依赖官方默认值：GLM `reasoningEffort="low"`、DeepSeek `enableThinking=false`（原因见 docs/模型API接入手册.md 坑点）
+- 新增提供方：在 `data/AppContainer` 注册 LlmClient，插入 `ModelRouter` 对应链；编排层只面对 `List<LlmClient>`，不感知厂商

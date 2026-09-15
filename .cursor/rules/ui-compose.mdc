@@ -1,0 +1,13 @@
+---
+description: Compose UI 层规则（编辑 ui 与 MainActivity 时激活）
+globs: ["app/src/main/java/com/guitarcoach/app/ui/**", "app/src/main/java/com/guitarcoach/app/MainActivity.kt"]
+alwaysApply: false
+---
+
+# UI 层规则（Jetpack Compose）
+
+- UI 只通过 `data/AppContainer` 拿编排器与引擎（CoachOrchestrator / TunerEngine 等），不直接调 OpenAiCompatClient / LlmClient
+- 流式输出按 `Flow<String>` 收集；模型备份切换后文本从头生成，UI 侧整段替换（现有 CoachOrchestrator 约定，勿改语义）
+- 一个 Screen 一个文件，文件名与 Tab/功能对应；跨屏复用组件下沉 `ui/components/`（M1 建立）
+- 不在 Composable 里做网络请求 / DSP / 文件 IO；状态提升到容器或 ViewModel
+- 单文件 ≤300 行（AGENTS.md 编码规范），超限先拆分再继续加功能
