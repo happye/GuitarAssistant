@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -115,6 +117,13 @@ fun TabStudioScreen(container: AppContainer) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // 输入区（可滚动，占剩余空间但不强占——结果列表出现时对半分）
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
         Text("识谱工作台", style = MaterialTheme.typography.headlineSmall)
         Text(
             "拍一张谱（或从相册选图）→ AI 识别成结构化谱面 → 逐小节展示与讲解；也支持粘贴文本谱。",
@@ -189,7 +198,7 @@ fun TabStudioScreen(container: AppContainer) {
             onValueChange = { pasteText = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 120.dp),
+                .heightIn(min = 120.dp, max = 160.dp), // 限高：文本在框内滚动，防止撑爆页面（用户反馈 bug）
             placeholder = {
                 Text(
                     "或粘贴六线谱，例如：\ne|--------3---|\nB|------3---3-|\nG|----0-------|\nD|--0---------|\nA|------------|\nE|------------|",
@@ -222,6 +231,7 @@ fun TabStudioScreen(container: AppContainer) {
             ) {
                 Text("❌ $it", modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
             }
+        }
         }
 
         // 展示（拍谱结果优先，其次文本谱结果）
