@@ -1,7 +1,7 @@
 {
   "project": "吉他学习助手（GuitarCoach）",
   "version": "0.1.0",
-  "updated_at": "2026-09-15",
+  "updated_at": "2026-09-16",
   "source": "README「当前状态」表 + docs/开发方案.md §9 里程碑路线图（验收标准同源）",
   "conventions": {
     "status": "done | pending（done 必须同时 passes=true）",
@@ -186,8 +186,8 @@
       "name": "移调/变调夹计算器",
       "description": "原调→新调换算、变调夹夹几品换指法（乐理计算移植 tonal.js/teoria.js 思路到 Kotlin）",
       "priority": 25,
-      "status": "pending",
-      "passes": false,
+      "status": "done",
+      "passes": true,
       "test_criteria": "已知输入算已知输出：C→G 上移 5 品等 ≥10 组用例全对（单元测试）"
     },
     {

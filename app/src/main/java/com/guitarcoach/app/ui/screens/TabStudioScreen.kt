@@ -188,6 +188,10 @@ fun TabStudioScreen(container: AppContainer) {
                             }
                         },
                     ) { Text(if (explaining) "讲解生成中…" else "让 AI 讲解这张谱怎么弹") }
+                    // F207：逐句大白话讲解（只基于已识别的结构化谱面，带覆盖审计）
+                    if (result.document.sections.any { it.bars.isNotEmpty() }) {
+                        PhraseCoachSection(container = container, doc = result.document)
+                    }
                 }
             }
         }

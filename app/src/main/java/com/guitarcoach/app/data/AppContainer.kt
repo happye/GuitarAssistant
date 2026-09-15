@@ -35,6 +35,9 @@ class AppContainer(context: Context) {
     // 拍谱识谱管线（F201）：视觉链 → 严格 JSON → 合法性过滤
     val tabExtractor by lazy { com.guitarcoach.app.core.tab.LlmTabExtractor { router.vision() } }
 
+    // 逐句大白话讲解管线（F207）：文本链（成本优先），输入已识别的 TabDocument
+    val phraseCoach by lazy { com.guitarcoach.app.core.coach.PhraseCoach { router.fastText() } }
+
     // Room：对话历史（F107）与练习记录（F106）共用一个库
     private val appContext = context.applicationContext
     private val database by lazy { AppDatabase.build(appContext) }
