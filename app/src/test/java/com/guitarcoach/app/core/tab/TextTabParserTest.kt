@@ -50,6 +50,24 @@ class TextTabParserTest {
     }
 
     @Test
+    fun `多位数品数只读一次不重复`() {
+        // 回归用例：逐列扫描版会把 "10" 拆成 10 与 0 两个音符（bug 0a01bf4 前身）
+        val multi = """
+            e|-------10---|
+            B|------------|
+            G|------------|
+            D|------------|
+            A|------------|
+            E|------------|
+        """.trimIndent()
+        val doc = TextTabParser.parse(multi)
+        val notes = doc.sections[0].bars[0].notes
+        assertEquals(1, notes.count { it.string == 1 })
+        val note = notes.first { it.string == 1 }
+        assertEquals(10, note.fret)
+    }
+
+    @Test
     fun `非谱文本抛可读错误`() {
         val e = assertThrows(IllegalArgumentException::class.java) {
             TextTabParser.parse("歌词第一行\n歌词第二行")

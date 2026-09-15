@@ -11,3 +11,5 @@ build
 # 项目本地虚拟环境：工具链与全部缓存都在仓库目录内，不入库
 /toolchain/
 /.gradle-home/
+.kotlin/
+hs_err_pid*.log

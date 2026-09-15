@@ -181,6 +181,36 @@
       "test_criteria": "已知输入算已知输出：C→G 上移 5 品等 ≥10 组用例全对（单元测试）"
     },
     {
+      "id": "F207",
+      "milestone": "M2",
+      "name": "逐句大白话讲解管线（图片谱，调研定稿 2026-09-15）",
+      "description": "路线 B：识谱→TabDocument→先规划全曲乐句分段→逐句生成讲解（总述/左手/右手/术语大白话/难点/自查）；CoVe 覆盖审计防漏音：讲解后剥离文本仅凭 TabDocument 重列音符清单做集合比对，不一致重试",
+      "priority": 26,
+      "status": "pending",
+      "passes": false,
+      "test_criteria": "对含 ≥20 音的样例谱：覆盖审计 0 漏音 0 重复；每句含 finger 字段；术语首现带一句解释（抽样人工核对）"
+    },
+    {
+      "id": "F208",
+      "milestone": "M2",
+      "name": "乐句卡片式点读 UI",
+      "description": "讲解以乐句卡片流展示（2-4 小节/句），卡片配小节序号与原图对照；点单个音符只讲该音（音符级点读兜底）；整段系统 TTS 朗读",
+      "priority": 27,
+      "status": "pending",
+      "passes": false,
+      "test_criteria": "逐句卡片可点开/朗读；点任意音符能获得该音的弦/品/手指讲解；讲解结果本地缓存可离线回看"
+    },
+    {
+      "id": "F209",
+      "milestone": "M2",
+      "name": "自动指法分配（DP）",
+      "description": "自研动态规划：弦/品序列→左手手指编号(0-4)与把位建议；代价=换弦/跨把位/手指伸展/同把位优先；LLM 生成的指法必须过规则校验（同品异弦不得同指等）",
+      "priority": 28,
+      "status": "pending",
+      "passes": false,
+      "test_criteria": "爬格子/C-Am-G-F 和弦进行等 ≥10 组用例指法符合常识（单元测试）；非法指法被规则校验拦截"
+    },
+    {
       "id": "F301",
       "milestone": "M3",
       "name": "相机实时手部跟踪叠加",
@@ -289,6 +319,46 @@
       "status": "pending",
       "passes": false,
       "test_criteria": "产出一份评估记录（延迟/成本/质量三指标实测），再决定做或不做——不做也算完成"
+    },
+    {
+      "id": "F601",
+      "milestone": "M6",
+      "name": "扒谱：音视频输入与抽音频",
+      "description": "用户选音频/视频文件 → Media3/MediaExtractor 抽取 PCM（不引入已退役的 FFmpeg-kit）→ 重采样到转写模型所需格式；UI 引导录制/选择干净吉他素材",
+      "priority": 60,
+      "status": "pending",
+      "passes": false,
+      "test_criteria": "mp3/m4a/mp4 三种输入均能抽出正确时长的 16k/22k 单声道 PCM"
+    },
+    {
+      "id": "F602",
+      "milestone": "M6",
+      "name": "扒谱：端侧音频转写（basic-pitch ONNX）",
+      "description": "basic-pitch 转子 onnxruntime-android：音频→MIDI 音符事件（含时间戳）；模型随包或首启下载；主打干净单音/分解和弦场景（调研结论：失真与混音是天花板，不承诺）",
+      "priority": 61,
+      "status": "pending",
+      "passes": false,
+      "test_criteria": "10 秒干净单音 riff 在中端机型（小米 14 基线）转写 < 60s；音高正确率抽检 ≥80%"
+    },
+    {
+      "id": "F603",
+      "milestone": "M6",
+      "name": "扒谱：弦品分配 DP + TabDocument 生成",
+      "description": "MIDI 音符→弦/品分配（代价=换弦/跨把位/伸展，与 F209 共用 DP 内核）→节拍量化（端侧 onset+测速起步）→TabDocument 入曲库；保留原始时间戳回退视图",
+      "priority": 62,
+      "status": "pending",
+      "passes": false,
+      "test_criteria": "合成的已知 MIDI 序列转 tab 正确率抽检；结果可在识谱工作台展示与讲解"
+    },
+    {
+      "id": "F604",
+      "milestone": "M6",
+      "name": "扒谱：云端增强（可选付费）",
+      "description": "Demucs 音源分离 + madmom 节拍量化的云端管线（GPU 按量，预估单次 0.1-0.5 元）；失真/混音素材的『高清模式』；上线前先做成本与法务（版权免责声明）评估",
+      "priority": 63,
+      "status": "pending",
+      "passes": false,
+      "test_criteria": "同一素材端侧 vs 云端对比报告（正确率/成本/耗时），并给出上线/不上线决策记录"
     }
   ]
 }
