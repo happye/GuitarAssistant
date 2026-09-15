@@ -25,7 +25,7 @@
 
 - UI 验证：真机/模拟器 `adb exec-out screencap -p` 截图回读；`adb shell uiautomator dump` 查控件树
 - 运行日志：`adb logcat -s GuitarCoach`（结构化 tag 约定见 docs/references/coding-standards.md）
-- 测试：`./scripts/build.sh test`（JVM 单测）；相机/音频冒烟走 `connectedDebugAndroidTest`
+- 测试：`./scripts/build.sh test`（JVM 单测，CI 为准）；本地跑单测用 `bash scripts/run-tests-local.sh`（L012 绕法已产品化，自动发现全部 *Test；相机/音频冒烟走 `connectedDebugAndroidTest`）
 
 ## 渐进式扩展触发规则
 

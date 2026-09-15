@@ -31,3 +31,10 @@
 - 严重程度: low
 - 影响: PlaceholderScreen.kt 承载练习室/识谱/乐理/我的等未实现 Tab——这是 M0 的计划内状态而非缺陷；列出仅为防止"占位页被遗忘到 M4 之后"
 - 计划偿还: 随 M1（乐理/练习室）/ M2（识谱）里程碑逐个替换；M3 结束时应无残留占位
+
+## DEBT-003: TabStudioScreen 单文件超 300 行规范上限
+
+- 发现日期: 2026-09-16（监督员 P2，F207 提交后达 316 行）
+- 严重程度: low
+- 影响: docs/references/coding-standards.md 单文件 ≤300 行；识谱工作台把拍谱路径、文本谱路径、结果列表都装在一个文件里，继续膨胀会失控
+- 计划偿还: F208 乐句卡片 UI 改造时顺手拆分——拍谱输入区与 ParsedTabList 各自成文件（PhraseCoachPanel.kt 已是现成拆分模式）；此前新增识谱相关 UI 一律放独立文件，不再往 TabStudioScreen 塞

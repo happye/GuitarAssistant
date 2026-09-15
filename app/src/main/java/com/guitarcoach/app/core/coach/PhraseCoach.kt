@@ -5,6 +5,7 @@ import com.guitarcoach.app.core.llm.JsonBlocks
 import com.guitarcoach.app.core.llm.LlmClient
 import com.guitarcoach.app.core.llm.LlmFallback
 import com.guitarcoach.app.core.tab.CoverageAuditor
+import com.guitarcoach.app.core.tab.FingeringSolver
 import com.guitarcoach.app.core.tab.NoteRef
 import com.guitarcoach.app.core.tab.Phrase
 import com.guitarcoach.app.core.tab.PhraseSegmenter
@@ -98,6 +99,7 @@ class PhraseCoach(private val textChain: suspend () -> List<LlmClient>) {
         val missing: List<NoteRef>,
         val extra: List<NoteRef>,
         val badFinger: Boolean,
+        val ruleViolations: List<String> = emptyList(),
     )
 
     data class Report(
@@ -152,6 +154,8 @@ class PhraseCoach(private val textChain: suspend () -> List<LlmClient>) {
     private suspend fun generate(phrase: Phrase, feedback: String?): PhraseExplain {
         val user = buildString {
             append("乐句谱面数据：").append('\n').append(phraseJson(phrase))
+            // F209：DP 算出的参考指法注入提示词（计算失败则静默跳过，不阻塞讲解）
+            dpReference(phrase)?.let { append("\n\n参考指法（动态规划计算，供参考）：").append(it) }
             if (!feedback.isNullOrBlank()) {
                 append("\n\n上一版讲解未通过覆盖审计：").append(feedback)
                 append("\n请重写：逐个核对 bar/string/fret，与谱面一一对应，漏的补上、多讲的删掉。")
@@ -183,8 +187,26 @@ class PhraseCoach(private val textChain: suspend () -> List<LlmClient>) {
         val badFinger = explain.steps.any {
             it.finger !in 0..4 || it.string !in 1..6 || it.fret !in 0..24 || it.bar !in phrase.barStart..phrase.barEnd
         }
-        return if (issue.clean && !badFinger) null else AuditIssue(phrase.index, issue.missing, issue.extra, badFinger)
+        // F209：LLM 指法必须过物理规则校验（同拍同指跨品、横按压住低品等）
+        val ruleViolations = ruleViolations(explain)
+        return if (issue.clean && !badFinger && ruleViolations.isEmpty()) {
+            null
+        } else {
+            AuditIssue(phrase.index, issue.missing, issue.extra, badFinger, ruleViolations)
+        }
     }
+
+    private fun ruleViolations(explain: PhraseExplain): List<String> =
+        explain.steps
+            .groupBy { it.bar to Math.round(it.beat * 1000.0) }
+            .map { (key, steps) ->
+                FingeringSolver.Assignment(
+                    bar = key.first,
+                    beat = key.second / 1000.0,
+                    items = steps.map { FingeringSolver.Item(it.string, it.fret, it.finger) },
+                )
+            }
+            .flatMap { FingeringSolver.validate(listOf(it)) }
 
     private fun feedbackFor(issue: AuditIssue): String = buildString {
         if (issue.missing.isNotEmpty()) {
@@ -198,6 +220,10 @@ class PhraseCoach(private val textChain: suspend () -> List<LlmClient>) {
         if (issue.badFinger) {
             if (isNotEmpty()) append("；")
             append("部分 step 的 finger 缺失（须 0~4）或弦/品/小节号非法")
+        }
+        issue.ruleViolations.take(2).forEach {
+            if (isNotEmpty()) append("；")
+            append("指法违规：").append(it)
         }
     }
 
@@ -235,6 +261,26 @@ class PhraseCoach(private val textChain: suspend () -> List<LlmClient>) {
     }
 
     // ---------- 紧凑谱面 JSON（控制 token；section 名做引号兜底转义） ----------
+
+    /** 乐句内的同拍分组（全局小节号口径，与讲解步骤一致）。 */
+    private fun phraseSlots(p: Phrase): List<FingeringSolver.Slot> =
+        p.bars.flatMapIndexed { bi, bar ->
+            bar.notes
+                .groupBy { Math.round(it.beat * 1000.0) }
+                .toSortedMap()
+                .map { (_, notes) ->
+                    FingeringSolver.Slot(p.barStart + bi, notes.minOf { it.beat }, notes.sortedBy { it.string })
+                }
+        }
+
+    /** F209：DP 参考指法文本；无解或越界时返回 null（讲解不强依赖）。 */
+    private fun dpReference(p: Phrase): String? = runCatching {
+        FingeringSolver.solve(phraseSlots(p))
+            .joinToString("；") { a ->
+                "第${a.bar}小节:" + a.items.joinToString(" ") { "${it.string}弦${it.fret}品=指${it.finger}" }
+            }
+            .take(400)
+    }.getOrNull()
 
     private fun phraseJson(p: Phrase): String = buildString {
         append("""{"section":"${p.sectionName.replace("\"", "'")}","barStart":${p.barStart},"barEnd":${p.barEnd},"bars":[""")
