@@ -32,15 +32,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.guitarcoach.app.core.tab.ExtractResult
+import com.guitarcoach.app.core.tab.TabBar
 import com.guitarcoach.app.core.tab.TabDocument
 import com.guitarcoach.app.core.tab.TextTabParser
+import com.guitarcoach.app.core.tab.globalBarNumber
 import com.guitarcoach.app.core.tab.midi
 import com.guitarcoach.app.core.tab.midiToName
+import com.guitarcoach.app.core.tab.withBar
 import com.guitarcoach.app.core.vision.FrameCodec
 import com.guitarcoach.app.data.AppContainer
 import kotlinx.coroutines.Dispatchers
@@ -72,6 +76,8 @@ fun TabStudioScreen(container: AppContainer) {
     var explainText by remember { mutableStateOf<String?>(null) }
     var explaining by remember { mutableStateOf(false) }
     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
+    // F203：正在编辑的小节（sectionIndex to barIndex）
+    var editTarget by remember { mutableStateOf<Pair<Int, Int>?>(null) }
 
     fun extractFrom(uri: Uri) {
         scope.launch {
@@ -235,9 +241,30 @@ fun TabStudioScreen(container: AppContainer) {
         }
         }
 
-        // 展示（拍谱结果优先，其次文本谱结果）
+        // 展示（拍谱结果优先，其次文本谱结果）；F203 支持逐小节编辑回写
         (extracted?.document ?: document)?.let { doc ->
-            ParsedTabList(doc, modifier = Modifier.weight(1f))
+            ParsedTabList(doc, modifier = Modifier.weight(1f), onEditBar = { s, b -> editTarget = s to b })
+        }
+    }
+
+    editTarget?.let { (si, bi) ->
+        (extracted?.document ?: document)?.let { doc ->
+            TabBarEditDialog(
+                sectionName = doc.sections[si].name,
+                barNumber = doc.globalBarNumber(si, bi),
+                initial = doc.sections[si].bars[bi],
+                onSave = { newBar ->
+                    val newDoc = doc.withBar(si, bi, newBar)
+                    if (extracted != null) {
+                        extracted = extracted?.copy(document = newDoc, warnings = emptyList())
+                    } else {
+                        document = newDoc
+                    }
+                    explainText = null // 旧讲解基于修正前数据，作废
+                    editTarget = null
+                },
+                onDismiss = { editTarget = null },
+            )
         }
     }
 
@@ -248,10 +275,14 @@ fun TabStudioScreen(container: AppContainer) {
 
 /** 解析结果列表：摘要卡 + 逐小节卡。整体一个 LazyColumn，避免嵌套滚动。 */
 @Composable
-private fun ParsedTabList(doc: TabDocument, modifier: Modifier = Modifier) {
+private fun ParsedTabList(
+    doc: TabDocument,
+    modifier: Modifier = Modifier,
+    onEditBar: (sectionIndex: Int, barIndex: Int) -> Unit = { _, _ -> },
+) {
     val totalNotes = doc.sections.sumOf { section -> section.bars.sumOf { it.notes.size } }
-    val rows = doc.sections.flatMap { section ->
-        section.bars.mapIndexed { barIndex, bar -> Triple(section.name, barIndex, bar) }
+    val rows = doc.sections.flatMapIndexed { si, section ->
+        section.bars.mapIndexed { bi, bar -> BarRow(si, bi, section.name, doc.globalBarNumber(si, bi), bar) }
     }
 
     LazyColumn(
@@ -285,14 +316,20 @@ private fun ParsedTabList(doc: TabDocument, modifier: Modifier = Modifier) {
         }
         // key 用扁平索引：段落名可能重复（两段都叫 Main），不能拿 名字#小节号 当 key
         itemsIndexed(rows, key = { i, _ -> "bar$i" }) { _, row ->
-            val (sectionName, barIndex, bar) = row
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text("$sectionName · 第 ${barIndex + 1} 小节", style = MaterialTheme.typography.titleSmall)
-                    if (bar.notes.isEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("${row.sectionName} · 第 ${row.globalNumber} 小节", style = MaterialTheme.typography.titleSmall)
+                        TextButton(onClick = { onEditBar(row.sectionIndex, row.barIndex) }) { Text("编辑") }
+                    }
+                    if (row.bar.notes.isEmpty()) {
                         Text(
                             "（空小节）",
                             style = MaterialTheme.typography.bodySmall,
@@ -300,7 +337,7 @@ private fun ParsedTabList(doc: TabDocument, modifier: Modifier = Modifier) {
                         )
                     } else {
                         Text(
-                            bar.notes.joinToString("  ") { note ->
+                            row.bar.notes.joinToString("  ") { note ->
                                 "${note.string}弦${note.fret}品(${midiToName(note.midi())})"
                             },
                             style = MaterialTheme.typography.bodySmall,
@@ -311,3 +348,11 @@ private fun ParsedTabList(doc: TabDocument, modifier: Modifier = Modifier) {
         }
     }
 }
+
+private data class BarRow(
+    val sectionIndex: Int,
+    val barIndex: Int,
+    val sectionName: String,
+    val globalNumber: Int,
+    val bar: TabBar,
+)
