@@ -9,8 +9,9 @@ Android 电吉他自学 App（Kotlin + Jetpack Compose，包名 `com.guitarcoach
 
 ## 开发环境
 
-- JDK 17+ / Android SDK Platform 36 / Gradle 8.13（wrapper，首次 `gradle wrapper --gradle-version 8.13`）
-- 构建与测试统一入口：`./scripts/build.sh <gradle 参数>`（如 `./scripts/build.sh assembleDebug`、`./scripts/build.sh test`）
+- JDK 17 与 Gradle 8.13 已装在项目内虚拟环境 `toolchain/`（不入库，不影响本机全局）；Android SDK 36 用本机已有安装（`local.properties` 的 `sdk.dir`）
+- 构建与测试统一入口：`./scripts/build.sh <gradle 参数>`（如 `./scripts/build.sh assembleDebug`、`./scripts/build.sh test`）；环境变量由 `scripts/env.sh` 提供，勿手工设置全局 JAVA_HOME
+- 目标设备基线：小米 14（arm64-v8a）
 - 真机/模拟器反馈：`adb devices` → `adb install -r app/build/outputs/apk/debug/app-debug.apk`；`adb exec-out screencap -p > shot.png` 截图回读；`adb logcat -s GuitarCoach` 看日志
 - 当前状态：`progress.md`；特性清单：`feature_list.json`（一次只做一个 pending 特性）
 
