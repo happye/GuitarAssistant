@@ -17,6 +17,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -48,6 +49,7 @@ internal fun PhraseReportDialog(
     onDismiss: () -> Unit,
 ) {
     var stepTarget by remember { mutableStateOf<PhraseExplain.Step?>(null) }
+    val ttsReady by tts.isReady.collectAsState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -70,7 +72,7 @@ internal fun PhraseReportDialog(
                     TextButton(onClick = { tts.speak(reportSpeechText(report)) }) { Text("整段朗读") }
                     TextButton(onClick = { tts.stop() }) { Text("停止") }
                 }
-                if (!tts.isReady) {
+                if (!ttsReady) {
                     Text(
                         "语音播报初始化中或系统 TTS 不可用（中文语音包需在系统设置安装）",
                         style = MaterialTheme.typography.bodySmall,

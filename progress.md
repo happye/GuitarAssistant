@@ -36,3 +36,11 @@
 - 验证: compile/assembleDebug 全绿；本地单测 5/5；CI 绿（650f7ec）；监督员复审通过（P1 类型错配在提交前由 main 修掉、布局修复结构确认）
 - Status: F201 代码完成待真机验收；M2 剩余：F202-F206（alphaTab 渲染/GP 导入/移调计算器/逐句讲解 F207-F209）
 - Next: F202 谱面渲染（alphaTab 决策点）或 F206 移调计算器（纯 JVM 快交付）
+
+## 2026-09-16 - Session: M2 代码面收口（F202-F209 全部落地）+ F206 done + M3 前置
+
+- Completed: F206 移调计算器（CI 绿 **done**）；F209 指法 DP（CI 绿 **done**，横按物理口径：同品异弦同指=合法横按，集成进 F207）；F204 结构化讲解（识别与讲解分离，explainTabDocument 替代看图讲解）；F203 编辑修正（TabBarEditDialog + withBar 回写，讲解基随修正数据）；F202 谱面渲染/点按试听（自绘 Canvas + TonePlayer；alphaTab 待 gradle 确认）；F208 卡片点读（TTS + PhraseCache 离线缓存 + 原图对照）；M3 前置 hand_landmarker.task 入库 assets（unzip 校验通过）
+- 验证: 每特性先本地 JUnitCore（**产品化为 scripts/run-tests-local.sh**，L013：临时目录必须成对刷新）后 CI 绿；单测从 5 → 73 个
+- 监督员: 常驻 subagent 本轮抓 4 个实错全部修复（全空弦槽崩溃 P1、midiToFreq 红线 P2、tech-debt 重号 P2、TTS isReady 不重组 P2）
+- Status: M2 代码面 8/9 完成（F205 阻塞）；新特性均待真机验收；feature_list: done 9 项（F001-F005、F104、F107、F206、F209）
+- Next: 用户连小米 14 → M1+M2 一起真机验收 → M1 收口 v0.2.0；用户确认 gradle 依赖后做 F205（alphaTab）；然后 M3
