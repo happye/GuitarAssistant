@@ -22,3 +22,10 @@
 - Status: F104 done/passes（CI 绿 + 本地 5/5）；F101 代码完成待真机验收（流式+多轮）；CI 全绿（单测+APK artifact）
 - Blockers: 方舟 GLM 待用户控制台开通（文本备份链不可用）；小米 14 真机未连接（装机验收待做）
 - Next: F102 乐理概念卡片 / F105 节拍器；M2 前置调研（图片逐句讲解、音频扒谱）由并行调研 agent 进行中
+
+## 2026-09-16 - Session: 留痕体系 + M1 全特性代码完成
+
+- Completed: CHANGELOG + docs/roadmap/（ROADMAP + M0-M6 七文档）+ 版本规则（Mk→v0.(k+1).0）；F107 对话管理（Room v1→v2，监督员 P1 流式删会话容错已修，done）；F102/F103/F105/F106 代码完成（待真机验收）；Room schema 1.json/2.json 入库
+- 验证: compileDebugKotlin/assembleDebug 全绿；CI 绿（faf8bd1 单测通过）；APK 33MB
+- Status: M1 代码面收口，**里程碑关闭条件 = 真机验收 F101/F102/F103/F105/F106**
+- Next: 真机验收（用户连接小米 14）→ M1 收口 v0.2.0 → M2 开工（F201 拍谱识谱优先）
