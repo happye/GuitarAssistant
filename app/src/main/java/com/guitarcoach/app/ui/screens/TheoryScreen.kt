@@ -11,14 +11,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,58 +33,84 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.guitarcoach.app.data.AppContainer
+import com.guitarcoach.app.data.db.MessageEntity
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-private data class ChatBubble(val id: Int, val role: String, val text: String) // role: user / assistant / error
+private const val STREAMING_BUBBLE_ID = -1L
 
 /**
- * F101 乐理聊天页：流式输出 + 多轮历史。
- * 链路：askTheory（快答链，DeepSeek 非思考优先）——历史以已完成问答对的形式回传给模型。
- * 范围说明：聊天状态用页面内 remember 存活，切 Tab 即重置——F101 限定；M1 后续按需要升级 ViewModel。
+ * F101+F107 乐理聊天页：流式输出 + 多轮历史 + 多会话管理（Room 持久化）。
+ * 流式期间文本在内存累积（streamingText），结束/中断时一次性落库——避免逐 delta 写库。
+ * 会话列表/重命名/删除见 TheorySessions.kt。
  */
 @Composable
 fun TheoryScreen(container: AppContainer) {
+    val repo = container.chatRepository
     val scope = rememberCoroutineScope()
-    var bubbles by remember { mutableStateOf(listOf<ChatBubble>()) }
+    val conversations by repo.observeConversations().collectAsState(initial = emptyList())
+    var currentId by remember { mutableStateOf<Long?>(null) }
+    val messages by repo.observeMessages(currentId ?: NO_CONVERSATION).collectAsState(initial = emptyList())
+    var streamingText by remember { mutableStateOf<String?>(null) }
+    var streamingConvId by remember { mutableStateOf<Long?>(null) }
     var input by remember { mutableStateOf("") }
     var streaming by remember { mutableStateOf(false) }
+    var showSessions by remember { mutableStateOf(false) }
+    var renameTarget by remember { mutableStateOf<com.guitarcoach.app.data.db.ConversationEntity?>(null) }
     val listState = rememberLazyListState()
 
-    // 消息增长（新气泡或流式追加）时滚到底部；流式期间用瞬时滚动避免动画堆积
-    LaunchedEffect(bubbles.size, bubbles.lastOrNull()?.text?.length) {
-        if (bubbles.isNotEmpty()) listState.scrollToItem(bubbles.lastIndex)
+    LaunchedEffect(messages.size, streamingText?.length) {
+        val count = messages.size + if (streamingText != null) 1 else 0
+        if (count > 0) listState.scrollToItem(count - 1)
     }
 
     fun send() {
         val question = input.trim()
         if (question.isEmpty() || streaming) return
         input = ""
-        bubbles = bubbles +
-            ChatBubble(id = bubbles.size, role = "user", text = question) +
-            ChatBubble(id = bubbles.size + 1, role = "assistant", text = "")
-        streaming = true
-        // 多轮历史 = 本次问答之前的已完成对话（跳过错误气泡与空占位）
-        val history = bubbles.dropLast(2)
-            .filter { (it.role == "user" || it.role == "assistant") && it.text.isNotBlank() }
-            .map { it.role to it.text }
         scope.launch {
+            // 历史取自落库消息（不含本轮）；流式回复结束/中断后整段落库
+            val history = messages
+                .filter { it.role == "user" || it.role == "assistant" }
+                .filter { it.content.isNotBlank() }
+                .map { it.role to it.content }
+
+            var convId = currentId
+            if (convId == null) {
+                convId = repo.createConversation(title = question.take(24))
+                currentId = convId
+            }
+            val conversationId = convId
+            repo.appendMessage(conversationId, "user", question)
+
+            streaming = true
+            streamingText = null
+            streamingConvId = conversationId
             try {
+                val sb = StringBuilder()
                 container.coach.askTheory(question, history).collect { delta ->
-                    val last = bubbles.last()
-                    bubbles = bubbles.dropLast(1) + last.copy(text = last.text + delta)
+                    sb.append(delta)
+                    streamingText = sb.toString()
                 }
+                repo.appendMessage(conversationId, "assistant", sb.toString().ifBlank { "（空回复）" })
+            } catch (e: CancellationException) {
+                withContext(NonCancellable) {
+                    streamingText?.takeIf { it.isNotBlank() }?.let {
+                        repo.appendMessage(conversationId, "assistant", it)
+                    }
+                }
+                throw e
             } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e // 切页取消：静默停止，不落错误气泡
-                // 流式中断：已显示的半截内容保留，错误追加在同一条气泡里（可重发）
-                val last = bubbles.lastOrNull()
-                val reason = e.message ?: "未知错误"
-                bubbles = if (last != null && last.role == "assistant") {
-                    bubbles.dropLast(1) + last.copy(text = last.text + "\n\n❌ 中断了：$reason")
-                } else {
-                    bubbles.dropLast(1) + ChatBubble(id = last?.id ?: bubbles.size, role = "error", text = "❌ $reason")
-                }
+                val partial = streamingText ?: ""
+                val text = if (partial.isBlank()) "❌ ${e.message ?: "未知错误"}"
+                else "$partial\n\n❌ 中断了：${e.message ?: "未知错误"}（可重发）"
+                repo.appendMessage(conversationId, "assistant", text)
             } finally {
                 streaming = false
+                streamingText = null
+                streamingConvId = null
             }
         }
     }
@@ -90,12 +121,21 @@ fun TheoryScreen(container: AppContainer) {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("乐理教练", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "降key升key、变调夹、五度圈、闷音护弦……随便问；术语都会配大白话解释和吉他上的具体操作。",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text("乐理教练", style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    currentId?.let { id -> conversations.firstOrNull { it.id == id }?.title ?: "当前会话" } ?: "新会话（发送后自动创建）",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = { showSessions = true }) { Text("会话 (${conversations.size})") }
+        }
 
         LazyColumn(
             state = listState,
@@ -104,8 +144,8 @@ fun TheoryScreen(container: AppContainer) {
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            if (bubbles.isEmpty()) {
-                item {
+            if (messages.isEmpty() && streamingText == null) {
+                item(key = "suggestions") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         listOf(
                             "降key和升key是什么意思？",
@@ -117,7 +157,17 @@ fun TheoryScreen(container: AppContainer) {
                     }
                 }
             }
-            items(bubbles, key = { it.id }) { bubble -> ChatBubbleView(bubble) }
+            items(messages, key = { it.id }) { message ->
+                ChatBubbleView(bubble = message.toBubble())
+            }
+            streamingText?.let { text ->
+                // 流式气泡只属于发起它的会话：中途切换会话时不在新会话里显示旧回复
+                if (currentId == null || currentId == streamingConvId) {
+                    item(key = STREAMING_BUBBLE_ID) {
+                        ChatBubbleView(ChatBubble(STREAMING_BUBBLE_ID.toInt(), "assistant", text.ifBlank { "…" }))
+                    }
+                }
+            }
         }
 
         Row(
@@ -141,7 +191,46 @@ fun TheoryScreen(container: AppContainer) {
             }
         }
     }
+
+    if (showSessions) {
+        SessionsDialog(
+            conversations = conversations,
+            currentId = currentId,
+            onDismiss = { showSessions = false },
+            onSelect = {
+                currentId = it
+                showSessions = false
+            },
+            onNew = {
+                currentId = null
+                showSessions = false
+            },
+            onRename = {
+                renameTarget = it
+                showSessions = false
+            },
+            onDelete = { conversation ->
+                scope.launch {
+                    repo.deleteConversation(conversation)
+                    if (currentId == conversation.id) currentId = null
+                }
+            },
+        )
+    }
+
+    renameTarget?.let { target ->
+        RenameDialog(
+            initial = target.title,
+            onDismiss = { renameTarget = null },
+            onConfirm = { newTitle ->
+                scope.launch { repo.renameConversation(target.id, newTitle) }
+                renameTarget = null
+            },
+        )
+    }
 }
+
+private fun MessageEntity.toBubble() = ChatBubble(id = id.toInt(), role = role, text = content)
 
 @Composable
 private fun ChatBubbleView(bubble: ChatBubble) {
@@ -174,3 +263,7 @@ private fun ChatBubbleView(bubble: ChatBubble) {
         }
     }
 }
+
+private data class ChatBubble(val id: Int, val role: String, val text: String)
+
+private const val NO_CONVERSATION = -1L

@@ -4,6 +4,7 @@ import android.content.Context
 import com.guitarcoach.app.core.coach.CoachOrchestrator
 import com.guitarcoach.app.core.llm.ModelRouter
 import com.guitarcoach.app.core.llm.OpenAiCompatClient
+import com.guitarcoach.app.data.db.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -30,6 +31,11 @@ class AppContainer(context: Context) {
         dsVision = dsVision,
     )
     val coach = CoachOrchestrator(router)
+
+    // Room：对话历史（F107）与练习记录（F106）共用一个库
+    private val appContext = context.applicationContext
+    private val database by lazy { AppDatabase.build(appContext) }
+    val chatRepository by lazy { ChatRepository(database) }
 
     fun shutdown() {
         appScope.cancel()
