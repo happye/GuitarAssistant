@@ -216,8 +216,8 @@
       "name": "自动指法分配（DP）",
       "description": "自研动态规划：弦/品序列→左手手指编号(0-4)与把位建议；代价=换弦/跨把位/手指伸展/同把位优先；LLM 生成的指法必须过规则校验（同品异弦不得同指等）",
       "priority": 28,
-      "status": "pending",
-      "passes": false,
+      "status": "done",
+      "passes": true,
       "test_criteria": "爬格子/C-Am-G-F 和弦进行等 ≥10 组用例指法符合常识（单元测试）；非法指法被规则校验拦截"
     },
     {

@@ -4,6 +4,8 @@ import com.guitarcoach.app.core.llm.ChatSpec
 import com.guitarcoach.app.core.llm.EncodedImage
 import com.guitarcoach.app.core.llm.LlmFallback
 import com.guitarcoach.app.core.llm.ModelRouter
+import com.guitarcoach.app.core.tab.TabCompact
+import com.guitarcoach.app.core.tab.TabDocument
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -19,15 +21,17 @@ import kotlinx.coroutines.flow.Flow
  */
 class CoachOrchestrator(private val router: ModelRouter) {
 
-    /** 拍谱讲解：流式输出，边生成边显示（视觉链）。 */
-    fun explainTabImage(imageBase64: String, question: String = ""): Flow<String> =
-        LlmFallback.streamWithFallback(chain = { router.vision() }) {
+    /** 拍谱讲解（F204）：基于已识别的结构化谱面数据（不重新看图），同一份谱两次讲解口径一致。 */
+    fun explainTabDocument(doc: TabDocument, question: String = ""): Flow<String> =
+        LlmFallback.streamWithFallback(chain = { router.fastText() }) {
             ChatSpec(
-                system = CoachPrompts.TAB_EXPLAIN,
-                user = question.ifBlank { "这张谱怎么弹？请讲解并给我练习建议。" },
-                images = listOf(EncodedImage(imageBase64)),
+                system = CoachPrompts.TAB_EXPLAIN_STRUCTURED,
+                user = buildString {
+                    append("谱面结构化数据：\n").append(TabCompact.doc(doc))
+                    append("\n\n学生问题：").append(question.ifBlank { "这张谱怎么弹？请讲解并给我练习建议。" })
+                },
                 maxTokens = 1500,
-                temperature = 0.5,
+                temperature = 0.3,
             )
         }
 

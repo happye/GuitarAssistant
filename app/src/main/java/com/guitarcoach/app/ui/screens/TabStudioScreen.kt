@@ -51,8 +51,9 @@ import java.io.File
 /**
  * F201 识谱工作台：
  *  - 文本谱路径（F104）：粘贴 UG 风格六线谱 → TextTabParser
- *  - 拍谱路径（F201，M2 新增）：拍照/相册 → FrameCodec 压缩 → LlmTabExtractor（视觉链）
- *    → 严格 JSON → 合法性过滤 → TabDocument；识别结果可「AI 讲解怎么弹」（explainTabImage 流式）
+ *  - 拍谱路径（F201）：拍照/相册 → FrameCodec 压缩 → LlmTabExtractor（视觉链）
+ *    → 严格 JSON → 合法性过滤 → TabDocument
+ *  - 讲解（F204）：基于识别出的结构化数据流式讲解（识别与讲解分离）；逐句讲解见 F207
  */
 @Composable
 fun TabStudioScreen(container: AppContainer) {
@@ -65,7 +66,6 @@ fun TabStudioScreen(container: AppContainer) {
     var error by remember { mutableStateOf<String?>(null) }
 
     // —— 拍谱路径（F201）——
-    var imageBase64 by remember { mutableStateOf<String?>(null) }
     var extracting by remember { mutableStateOf(false) }
     var extractError by remember { mutableStateOf<String?>(null) }
     var extracted by remember { mutableStateOf<ExtractResult?>(null) }
@@ -86,7 +86,6 @@ fun TabStudioScreen(container: AppContainer) {
                     } ?: throw IllegalArgumentException("图片读取失败，请重试")
                     FrameCodec.toBase64Jpeg(bitmap).also { bitmap.recycle() }
                 }
-                imageBase64 = base64
                 extracted = container.tabExtractor.extract(base64)
             } catch (e: Exception) {
                 extractError = e.message ?: "识谱失败，请重试"
@@ -167,23 +166,21 @@ fun TabStudioScreen(container: AppContainer) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    val base = imageBase64
+                    // F204：讲解基于识别出的结构化数据（不重新看图），同谱讲解口径一致
                     TextButton(
-                        enabled = base != null && !explaining,
+                        enabled = !explaining,
                         onClick = {
-                            if (base != null) {
-                                explaining = true
-                                explainText = ""
-                                scope.launch {
-                                    try {
-                                        container.coach.explainTabImage(base).collect { delta ->
-                                            explainText = (explainText ?: "") + delta
-                                        }
-                                    } catch (e: Exception) {
-                                        explainText = (explainText ?: "") + "\n\n❌ ${e.message ?: "讲解失败"}"
-                                    } finally {
-                                        explaining = false
+                            explaining = true
+                            explainText = ""
+                            scope.launch {
+                                try {
+                                    container.coach.explainTabDocument(result.document).collect { delta ->
+                                        explainText = (explainText ?: "") + delta
                                     }
+                                } catch (e: Exception) {
+                                    explainText = (explainText ?: "") + "\n\n❌ ${e.message ?: "讲解失败"}"
+                                } finally {
+                                    explaining = false
                                 }
                             }
                         },
