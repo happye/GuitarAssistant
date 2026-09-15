@@ -68,10 +68,10 @@ fun CoachApp(container: AppContainer) {
             modifier = Modifier.padding(padding),
         ) {
             composable("home") { HomeScreen(container) }
-            composable("practice") { PracticeScreen() }
+            composable("practice") { PracticeScreen(container) }
             composable("tabs") { TabStudioScreen() }
             composable("theory") { TheoryScreen(container) }
-            composable("me") { ProfileScreen() }
+            composable("me") { ProfileScreen(container) }
         }
     }
 }

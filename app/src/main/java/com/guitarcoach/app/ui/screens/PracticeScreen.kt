@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.guitarcoach.app.core.audio.TunerEngine
+import com.guitarcoach.app.data.AppContainer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlin.math.abs
@@ -38,7 +39,7 @@ private val STRING_LABELS = listOf(
 )
 
 @Composable
-fun PracticeScreen() {
+fun PracticeScreen(container: AppContainer) {
     val context = LocalContext.current
     val engine = remember { TunerEngine(CoroutineScope(Dispatchers.Default)) }
     val reading by engine.reading.collectAsState()
@@ -129,5 +130,8 @@ fun PracticeScreen() {
                 }
             }
         }
+
+        MetronomeCard()
+        PracticeTimerCard(container.practiceRepository)
     }
 }

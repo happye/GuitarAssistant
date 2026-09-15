@@ -36,6 +36,7 @@ class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     private val database by lazy { AppDatabase.build(appContext) }
     val chatRepository by lazy { ChatRepository(database) }
+    val practiceRepository by lazy { PracticeRepository(database) }
 
     fun shutdown() {
         appScope.cancel()
