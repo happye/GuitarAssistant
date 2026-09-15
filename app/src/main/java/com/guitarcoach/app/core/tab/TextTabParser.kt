@@ -73,8 +73,9 @@ object TextTabParser {
             val line = raw.trim()
             val match = lineRegex.find(line)
             val label = match?.groupValues?.get(1)
-            if (match != null && label != null && STRING_LABELS.containsKey(label)) {
-                val string = STRING_LABELS[label]!!
+            // STRING_LABELS 以 Char 为键，正则捕获组是单字符 String，转换后查询
+            val string = label?.takeIf { it.length == 1 }?.let { STRING_LABELS[it[0]] }
+            if (match != null && string != null) {
                 if (string in seen) {
                     blocks.add(current.toList())
                     current = mutableListOf()

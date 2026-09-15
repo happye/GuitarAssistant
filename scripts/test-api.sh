@@ -57,7 +57,9 @@ call_api() {
 }
 
 fail=0
-call_api "火山方舟 Ark" "https://ark.cn-beijing.volces.com/api/v3/chat/completions" "glm-5.3-flash" "$ARK_KEY" || fail=1
+# 方舟模型 id 必须带日期后缀（点号版 404，见 docs/模型API接入手册.md §2）；
+# 返回 404 + ModelNotOpen 说明 key 有效但账号未在方舟控制台开通该模型
+call_api "火山方舟 Ark" "https://ark.cn-beijing.volces.com/api/v3/chat/completions" "glm-5-3-flash-260828" "$ARK_KEY" || fail=1
 call_api "DeepSeek" "https://api.deepseek.com/chat/completions" "deepseek-flash" "$DS_KEY" || fail=1
 
 if [ $fail -ne 0 ]; then

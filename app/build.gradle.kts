@@ -15,6 +15,12 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+
+        ndk {
+            // 适配基线：小米 14（骁龙 8 Gen 3 为 64 位专用 SoC），只出 arm64-v8a；
+            // 其他机型适配后置（见 docs/开发方案.md §9）
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     buildTypes {
