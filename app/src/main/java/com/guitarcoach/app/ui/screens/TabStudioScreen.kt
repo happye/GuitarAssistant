@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -78,6 +79,8 @@ fun TabStudioScreen(container: AppContainer) {
     var pendingCaptureUri by remember { mutableStateOf<Uri?>(null) }
     // F203：正在编辑的小节（sectionIndex to barIndex）
     var editTarget by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    // F202：展示模式（列表 / 谱面渲染）
+    var showRender by remember { mutableStateOf(false) }
 
     fun extractFrom(uri: Uri) {
         scope.launch {
@@ -241,9 +244,17 @@ fun TabStudioScreen(container: AppContainer) {
         }
         }
 
-        // 展示（拍谱结果优先，其次文本谱结果）；F203 支持逐小节编辑回写
+        // 展示（拍谱结果优先，其次文本谱结果）；F203 支持逐小节编辑回写；F202 支持谱面渲染与点按试听
         (extracted?.document ?: document)?.let { doc ->
-            ParsedTabList(doc, modifier = Modifier.weight(1f), onEditBar = { s, b -> editTarget = s to b })
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(selected = !showRender, onClick = { showRender = false }, label = { Text("列表") })
+                FilterChip(selected = showRender, onClick = { showRender = true }, label = { Text("谱面（点按试听）") })
+            }
+            if (showRender) {
+                TabRenderPanel(doc, modifier = Modifier.weight(1f))
+            } else {
+                ParsedTabList(doc, modifier = Modifier.weight(1f), onEditBar = { s, b -> editTarget = s to b })
+            }
         }
     }
 
