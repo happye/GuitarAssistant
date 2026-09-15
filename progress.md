@@ -29,3 +29,10 @@
 - 验证: compileDebugKotlin/assembleDebug 全绿；CI 绿（faf8bd1 单测通过）；APK 33MB
 - Status: M1 代码面收口，**里程碑关闭条件 = 真机验收 F101/F102/F103/F105/F106**
 - Next: 真机验收（用户连接小米 14）→ M1 收口 v0.2.0 → M2 开工（F201 拍谱识谱优先）
+
+## 2026-09-16 - Session: F201 拍谱识谱（M2 开工）+ 用户反馈 bug 修复
+
+- Completed: F201 代码（系统相机拍照 FileProvider + Photo Picker 选图 → 视觉识谱 → 展示 + AI 讲解流式对话框）；降级原语重构 core/llm/LlmFallback（编排器+识谱管线共用，L010/L011 契约单点维护）；用户反馈 bug 修复：识谱页输入区可滚动 + 粘贴框限高
+- 验证: compile/assembleDebug 全绿；本地单测 5/5；CI 绿（650f7ec）；监督员复审通过（P1 类型错配在提交前由 main 修掉、布局修复结构确认）
+- Status: F201 代码完成待真机验收；M2 剩余：F202-F206（alphaTab 渲染/GP 导入/移调计算器/逐句讲解 F207-F209）
+- Next: F202 谱面渲染（alphaTab 决策点）或 F206 移调计算器（纯 JVM 快交付）
