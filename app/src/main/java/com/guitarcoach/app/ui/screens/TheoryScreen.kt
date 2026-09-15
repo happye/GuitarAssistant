@@ -69,6 +69,7 @@ fun TheoryScreen(container: AppContainer) {
                     bubbles = bubbles.dropLast(1) + last.copy(text = last.text + delta)
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e // 切页取消：静默停止，不落错误气泡
                 // 流式中断：已显示的半截内容保留，错误追加在同一条气泡里（可重发）
                 val last = bubbles.lastOrNull()
                 val reason = e.message ?: "未知错误"

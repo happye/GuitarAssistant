@@ -5,6 +5,7 @@ import com.guitarcoach.app.core.llm.EncodedImage
 import com.guitarcoach.app.core.llm.LlmClient
 import com.guitarcoach.app.core.llm.LlmException
 import com.guitarcoach.app.core.llm.ModelRouter
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -78,6 +79,9 @@ class CoachOrchestrator(private val router: ModelRouter) {
                     emit(delta)
                 }
                 return@flow
+            } catch (e: CancellationException) {
+                // 协程取消必须穿透，绝不当成"失败"去降级（否则取消被吞，后台残留至多 readTimeout）
+                throw e
             } catch (e: Exception) {
                 lastError = e
                 if (emitted) throw e
@@ -93,6 +97,8 @@ class CoachOrchestrator(private val router: ModelRouter) {
         for (client in clients) {
             try {
                 return client.complete(specFactory())
+            } catch (e: CancellationException) {
+                throw e // 同上：取消穿透，不降级
             } catch (e: Exception) {
                 lastError = e
             }
