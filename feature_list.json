@@ -96,8 +96,8 @@
       "name": "文本谱粘贴解析 + 谱面展示",
       "description": "粘贴 UG 风格文本谱 → TextTabParser → 简易谱面渲染（M1 先自绘/列表化展示，M2 换 alphaTab 精渲染）",
       "priority": 13,
-      "status": "pending",
-      "passes": false,
+      "status": "done",
+      "passes": true,
       "test_criteria": "粘贴含调弦标记与 ≥4 小节的 UG 谱可显示弦/品/小节结构；解析失败给可读错误"
     },
     {

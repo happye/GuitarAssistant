@@ -11,7 +11,7 @@ Android 电吉他自学 App（Kotlin + Jetpack Compose，包名 `com.guitarcoach
 
 - JDK 21（兼容 17）与 Gradle 8.13 已装在项目内虚拟环境 `toolchain/`（不入库，不影响本机全局）；Android SDK 36 用本机已有安装（`local.properties` 的 `sdk.dir`）
 - 构建与测试统一入口：`./scripts/build.sh <gradle 参数>`（如 `./scripts/build.sh assembleDebug`、`./scripts/build.sh test`）；环境变量由 `scripts/env.sh` 提供，勿手工设置全局 JAVA_HOME
-- **单元测试本地跑不了（L012：中文路径 + JDK 原生层 GBK 读 @argfile，JDK17/21 均如此）——测试以 GitHub Actions 为准**（push 即触发，见 .github/workflows/android-ci.yml）；本地验证用 `compileDebugKotlin` / `assembleDebug`
+- **单元测试本地跑不了 Gradle 的 test 任务（L012：中文路径 + JDK 原生层 GBK 读 @argfile，JDK17/21 均如此）——测试以 GitHub Actions 为准**（push 即触发，见 .github/workflows/android-ci.yml）。本地快速自检的临时绕法（未产品化）：拷编译产物与依赖 jar 到 ASCII 临时目录手工跑 JUnitCore（详见 L012 防复发栏）；本地常规验证用 `compileDebugKotlin` / `assembleDebug`
 - 目标设备基线：小米 14（arm64-v8a）
 - 真机/模拟器反馈：`adb devices` → `adb install -r app/build/outputs/apk/debug/app-debug.apk`；`adb exec-out screencap -p > shot.png` 截图回读；`adb logcat -s GuitarCoach` 看日志
 - 当前状态：`progress.md`；特性清单：`feature_list.json`（一次只做一个 pending 特性）
