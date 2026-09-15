@@ -23,7 +23,7 @@ class CoachOrchestrator(private val router: ModelRouter) {
 
     /** 拍谱讲解：流式输出，边生成边显示（视觉链）。 */
     fun explainTabImage(imageBase64: String, question: String = ""): Flow<String> =
-        streamWithFallback(router.vision()) {
+        streamWithFallback(chain = { router.vision() }) {
             ChatSpec(
                 system = CoachPrompts.TAB_EXPLAIN,
                 user = question.ifBlank { "这张谱怎么弹？请讲解并给我练习建议。" },
@@ -35,7 +35,7 @@ class CoachOrchestrator(private val router: ModelRouter) {
 
     /** 乐理问答：流式输出，支持多轮历史（快答链）。 */
     fun askTheory(question: String, history: List<Pair<String, String>> = emptyList()): Flow<String> =
-        streamWithFallback(router.fastText()) {
+        streamWithFallback(chain = { router.fastText() }) {
             ChatSpec(
                 system = CoachPrompts.THEORY_QA,
                 user = question,
@@ -64,18 +64,27 @@ class CoachOrchestrator(private val router: ModelRouter) {
 
     // ---------- 内部：模型链 + 备份降级 ----------
 
-    /** 流式 + 逐级备份。注意：切换备份后文本从头重新生成，UI 侧直接整段替换。 */
-    private fun streamWithFallback(clients: List<LlmClient>, specFactory: () -> ChatSpec): Flow<String> = flow {
-        var index = 0
-        while (true) {
+    /** 流式 + 逐级备份。chain 为 suspend 提供者（路由读配置需要挂起）。
+     *  降级契约：仅在「尚未向下游发射任何内容」时才换链重试；已经吐过内容再失败则直接抛错给 UI，
+     *  否则备份链从头重生成会与已显示的半截话拼接成乱文（UI 是追加渲染）。 */
+    private fun streamWithFallback(chain: suspend () -> List<LlmClient>, specFactory: () -> ChatSpec): Flow<String> = flow {
+        val clients = chain()
+        var emitted = false
+        var lastError: Exception? = null
+        for (client in clients) {
             try {
-                clients[index].stream(specFactory()).collect { emit(it) }
+                client.stream(specFactory()).collect { delta ->
+                    emitted = true
+                    emit(delta)
+                }
                 return@flow
             } catch (e: Exception) {
-                if (index == clients.lastIndex) throw e
-                index++
+                lastError = e
+                if (emitted) throw e
+                // 一个字都没吐：静默换链上下一家
             }
         }
+        throw lastError ?: LlmException("没有可用的模型（请到首页检查 API Key 配置）")
     }
 
     /** 非流式 + 逐级备份。 */

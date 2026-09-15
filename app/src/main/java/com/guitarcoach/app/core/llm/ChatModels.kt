@@ -18,13 +18,6 @@ data class ChatSpec(
     val temperature: Double? = null,
     /** 要求模型输出 JSON（服务端支持则用 response_format，不支持自动降级为纯提示词约束）。 */
     val jsonMode: Boolean = false,
-    /**
-     * 思考强度：GLM-5.3-Flash 取 low/high/max（缺省会回退到 max，务必显式传省 token）；
-     * DeepSeek V4 取 high/max。null = 不发送。
-     */
-    val reasoningEffort: String? = null,
-    /** DeepSeek 思考模式开关（默认值不稳定，依赖它的场景必须显式传）；null = 不发送。 */
-    val enableThinking: Boolean? = null,
 )
 
 /** 提供方连接配置（全部可在 App 设置页修改，改完即生效）。 */

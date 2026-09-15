@@ -105,8 +105,8 @@ class OpenAiCompatClient(
             if (useJsonMode && spec.jsonMode) {
                 put("response_format", buildJsonObject { put("type", "json_object") })
             }
-            spec.reasoningEffort?.let { put("reasoning_effort", it) }
-            spec.enableThinking?.let { put("enable_thinking", it) }
+            // 注意：思考控制不靠参数靠选模型 id（deepseek-chat=关 / deepseek-flash=开，实测 L002），
+            // 因此这里刻意不发送 enable_thinking / reasoning_effort，防止误用。
             put("messages", buildJsonArray {
                 spec.system?.let { sys ->
                     add(buildJsonObject {

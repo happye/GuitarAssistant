@@ -7,7 +7,7 @@ import com.guitarcoach.app.core.llm.LlmClient
 import kotlinx.serialization.json.Json
 
 /**
- * 用多模态模型（GLM-5.3-Flash）把「拍下来的六线谱图片」转成结构化 [TabDocument]。
+ * 用多模态模型（视觉链主选 DeepSeek 视觉版，见 ModelRouter）把「拍下来的六线谱图片」转成结构化 [TabDocument]。
  *
  * 关键设计：不让模型直接“讲谱”，而是先产出严格 JSON，App 做合法性校验后入库；
  * 讲解再基于结构化数据分层进行 —— 准确性可校验、谱面可回放、讲解可重试。
