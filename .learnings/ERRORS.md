@@ -26,3 +26,19 @@
 - 根因: 未装 JDK 17；wrapper 未生成入库
 - 修复: 安装 JDK 17（如 Temurin 17）→ `gradle wrapper --gradle-version 8.13` → wrapper 产物入库（README「环境要求」同款步骤）
 - 验证命令: `./scripts/build.sh assembleDebug`（产物 app/build/outputs/apk/debug/app-debug.apk）；已记 docs/exec-plans/tech-debt.md DEBT-002
+
+## E004 方舟 GLM 调不通：点号 id 404 + ModelNotOpen 伪装成 404
+
+- 现象: `glm-5.3-flash`（点号版）请求 404；改用正确 id `glm-5-3-flash-260828` 后仍报 404，实际是账号未开通该模型（`ModelNotOpen`）
+- 复现条件: 用点号 id 调方舟；或用正确 id 但方舟控制台未在「开通管理」开通该模型
+- 根因: 方舟模型 id 命名带日期后缀不用点号；ModelNotOpen 错误伪装成 404（2026-09-15 真实 Key 实测，来源：并行接入任务）
+- 修复: id 改为 `glm-5-3-flash-260828`；到方舟控制台开通模型后重试（当前 GLM 作为文本备份链，开通前链式降级跳过它）
+- 验证命令: docs/模型API接入手册.md 的方舟 curl 冒烟（Key 从 local.properties 读，勿入库）
+
+## E005 DeepSeek 思考开关参数静默无效
+
+- 现象: 传 `enable_thinking` 无任何效果（静默忽略）；对 `deepseek-chat` 传 `reasoning_effort` 反而强制打开思考，快答链路变慢变贵
+- 复现条件: 对 DeepSeek 官方端点传思考相关参数（2026-09-15 实测）
+- 根因: DeepSeek 用不同 id 区分思考形态（`deepseek-chat`=关 / `deepseek-flash`=开），参数通道已废弃
+- 修复: 代码不传思考参数；按任务选 id（快答→deepseek-chat，深度→deepseek-flash）；见 LEARNINGS L002/L008
+- 验证命令: docs/模型API接入手册.md 的 DeepSeek curl 冒烟，对比两个 id 的响应延迟与 token 账单

@@ -43,8 +43,8 @@ Percep  → core/tab/ core/vision/ core/audio/（谱面 / 视觉 / 音频，端�
 ## 4. 模型接入不变量
 
 - 网关只认 OpenAI 兼容协议（`ChatSpec → OpenAiCompatClient`），厂商差异吸收在配置层；baseUrl/modelId 必须可配置（DataStore），禁止写死在调用点
-- 模型选择走 `ModelRouter` 链 + 逐级降级：文本链 DeepSeek→GLM，视觉链 GLM→DeepSeek；新增提供方 = AppContainer 注册 + 插链，编排层只面对 `List<LlmClient>`
-- 成本约束：默认优先更便宜的模型；图片 base64 内联、批量限 1-3 帧、思考参数显式传（见 `.learnings/LEARNINGS.md` L001-L003）
+- 多逻辑客户端共享账号、`ModelRouter` 链式降级（2026-09-15 实测定稿：DeepSeek 快答/深思/视觉 + 方舟 GLM 文本备份）；新增提供方 = AppContainer 注册 + 插链，编排层只面对客户端抽象。链路配置以 `docs/模型API接入手册.md` 最新实测为准
+- 成本约束：默认优先更便宜的模型；图片 base64 内联、批量限 1-3 帧、思考模式按任务选 id 而非传参数（见 `.learnings/` L002/L007/L008）
 - 端点/密钥的任何细节只在 `docs/模型API接入手册.md` 与 `local.properties`，不入其他被跟踪文件
 
 ## 5. 强制执行方式

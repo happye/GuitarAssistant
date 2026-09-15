@@ -5,9 +5,11 @@
 
 | ID | 日期 | 类别 | 教训 | 根因 | 防复发措施 | Status |
 |---|---|---|---|---|---|---|
-| L001 | 2026-09-15 | API | GLM 的 reasoning_effort 缺省或填错会回退 max，思考 token 翻倍烧钱 | 官方缺省值不是 low（接入手册 §1.4） | 所有 ChatSpec 显式 `reasoningEffort="low"`（编排层统一设置）；改网关时全局搜 ChatSpec( 确认无裸传 | active |
-| L002 | 2026-09-15 | API | DeepSeek 思考模式默认值不稳定，可能先吐 reasoning_content 或 JSON 模式输出空白 | 不同时期官方文档口径冲突（接入手册 §2.3） | 问答链路显式 `enableThinking=false`；jsonMode 时提示词同时声明"只输出 JSON"；网关只取 delta.content | active |
+| L001 | 2026-09-15 | API | GLM 的 reasoning_effort 缺省或填错会回退 max，思考 token 翻倍烧钱 | 官方缺省值不是 low（初版接入手册 §1.4 记录） | 当前主力链路是 DeepSeek（见 L002），代码不传思考参数；方舟 GLM 账号开通后实测复核本条再决定是否保留 | pending |
+| L002 | 2026-09-15 | API | ~~DeepSeek 思考默认值不稳定~~ 实测修正：**DeepSeek 思考开关靠选模型 id，不靠参数**——`deepseek-chat`=思考关（快答）、`deepseek-flash`=思考开；`enable_thinking` 参数被静默忽略；`reasoning_effort` 反而会强制 deepseek-chat 开思考 | 文档口径与真实行为不一致（2026-09-15 真实 Key 实测，同步自并行接入任务） | 代码不传思考参数，按任务选 id：快答/问答用 deepseek-chat，规划/复盘用 deepseek-flash；新增链路先跑手册 curl 冒烟 | active |
 | L003 | 2026-09-15 | API | 图片走 URL 直传可能被 CDN 防盗链挡掉，识谱/看手静默失败 | 模型服务端下载图片受 referer/签名限制 | 图片一律 base64 data URI 内联（FrameCodec → EncodedImage）；禁 URL 直传 | active |
 | L004 | 2026-09-15 | 调研 | ASCII 六线谱没有维护良好的开源解析器；JVM 生态也没有可用的第三方 GP 解析库（alphaTab 除外） | 小众格式，检索到的开源项目多为玩具级或无许可证（开发方案 §4.0.1） | 坚持自研 TextTabParser 路线；GP 导入选 alphaTab 1.8.4（MPL-2.0）前再核一次 LICENSE | active |
 | L005 | 2026-09-15 | 产品 | 单目摄像头可靠判"第几品"物理上做不到（透视/遮挡/分辨率/动态标定），硬做必然误报伤信任 | 物理边界不是工程问题（开发方案 §5.4） | 不承诺判品：视觉只做姿势类判定，正确性真相源是音频（MPM）；参考品位只在高置信度显示并标注"参考" | active |
 | L006 | 2026-09-15 | 产品 | 手型纠错误报会直接摧毁用户信任（"改手型最贵"）；单次轰炸多条点评没人看得完 | 模型幻觉 + 无置信度门槛 | 提示词强制"看不清就说，不硬猜"；规则层只报高置信度问题；单次点评 ≤2 条（开发方案 §10 风险 2） | active |
+| L007 | 2026-09-15 | API | 方舟模型 id 不用点号：`glm-5.3-flash` 返回 404，正确 id 带日期后缀 `glm-5-3-flash-260828`；且账号未开通模型时报 `ModelNotOpen` 伪装成 404 | 方舟 id 命名规范 + 错误码语义混淆（2026-09-15 真实 Key 实测） | 方舟 id 一律用"短横线+日期后缀"形式；调不通先查方舟控制台「开通管理」的模型开通状态，再排查 id 拼写 | active |
+| L008 | 2026-09-15 | 方法 | 接入事实必须实测：官方文档快照与真实行为有出入（enable_thinking 文档说可传、实测静默无效） | 文档滞后/口径漂移 | 每次接新模型/新 id，先跑 docs/模型API接入手册.md 的 curl 冒烟再写代码；手册与实测冲突时以实测为准并回写手册（改动手册需用户确认） | active |

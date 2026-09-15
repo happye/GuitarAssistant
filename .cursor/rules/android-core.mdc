@@ -12,5 +12,5 @@ alwaysApply: false
 - `core/coach`、`core/tab` 可依赖 `core/llm`；`core/vision`、`core/audio` 保持纯端侧，不加 LLM 依赖
 - core 内任何模块不得 import `data/` 与 `ui/`
 - 结构化输出解析放对应模块：手势点评 JSON 在 `CoachFeedback`，识谱 JSON 在 `LlmTabExtractor`；识谱产物必须过合法性过滤（弦 1-6 / 品 0-24，非法丢弃）再进 TabDocument
-- 模型参数显式传，不依赖官方默认值：GLM `reasoningEffort="low"`、DeepSeek `enableThinking=false`（原因见 docs/模型API接入手册.md 坑点）
+- 模型思考模式靠选 id 不靠参数：快答用 `deepseek-chat`、深度用 `deepseek-flash`（`enable_thinking` 静默无效、`reasoning_effort` 会强制 deepseek-chat 开思考——代码不传思考参数）；方舟 GLM id 用横线+日期后缀（如 `glm-5-3-flash-260828`），事实依据见 docs/模型API接入手册.md 与 .learnings/
 - 新增提供方：在 `data/AppContainer` 注册 LlmClient，插入 `ModelRouter` 对应链；编排层只面对 `List<LlmClient>`，不感知厂商

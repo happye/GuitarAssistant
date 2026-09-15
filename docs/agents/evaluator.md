@@ -10,7 +10,7 @@
    - `./scripts/build.sh test` 复跑单测；改动涉及交互则 `./scripts/build.sh connectedDebugAndroidTest`
    - `adb install -r` 后真机/模拟器实操：`adb exec-out screencap -p` 截图逐屏检查 UI，`adb shell uiautomator dump` 查控件树
    - `adb logcat -s GuitarCoach` 查异常/降级/日志规范
-   - 模型链路：App 内「测试连通」+ 对照 docs/模型API接入手册.md 的坑点清单（reasoning_effort、enable_thinking、base64 内联）
+   - 模型链路：App 内「测试连通」+ 对照 docs/模型API接入手册.md 的坑点清单（思考模式靠选 id、方舟 id 横线+日期后缀、图片 base64 内联，见 .learnings/）
 4. 按以下维度评分（0-10），**每维硬阈值 ≥7**，任何一维 <7 即 sprint 失败：
 
 | 维度 | 看什么 |

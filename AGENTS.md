@@ -32,7 +32,7 @@ app/src/main/java/com/guitarcoach/app/
 1. **TabDocument 是谱面唯一数据模型**：文本解析 / GP 导入 / 拍照识谱全部先转 TabDocument；渲染、播放、讲解、记录一律基于它
 2. **提示词只放 `core/coach/CoachPrompts`**：任何文件不得内联 system prompt
 3. **依赖方向**：`ui → data → core/*`；`core/coach`、`core/tab` 可依赖 `core/llm`；`core/llm`、`core/vision`、`core/audio` 不得反向依赖 coach/tab/ui/data；UI 不直接调 LlmClient/OpenAiCompatClient
-4. **模型路由**：新增提供方在 `data/AppContainer` 注册 LlmClient 并插入 `ModelRouter` 链；默认优先更便宜的 DeepSeek（文本），视觉 GLM 主选，两家互为备份
+4. **模型路由**：多逻辑客户端共享账号、链式降级（当前：DeepSeek 快答/深思/视觉 + 方舟 GLM 文本备份，全部 baseUrl 与模型 id 可在设置页修改）；新增提供方在 `data/AppContainer` 注册 LlmClient 并插入 `ModelRouter` 链，默认优先更便宜的 DeepSeek，链路配置以 `docs/模型API接入手册.md` 最新实测为准（思考模式靠选 id 不靠参数）
 5. **许可证**：只引入 Apache/MIT/BSD（MPL-2.0 为文件级 copyleft，引入前单独评估）；GPL/LGPL/AGPL 项目只参考思路，不复制代码
 6. **密钥与隐私**：密钥只存 `local.properties`（已 gitignore）与 App 内 DataStore；绝不入库、绝不写进任何被 git 跟踪的文件、绝不外传；谱面图片等用户数据不出设备
 
