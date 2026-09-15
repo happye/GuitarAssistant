@@ -34,6 +34,8 @@ bash scripts/test-api.sh     # 两个模型接口的连通冒烟测试
 
 产物在 `app/build/outputs/apk/debug/app-debug.apk`。
 
+> ⚠️ 单元测试本地跑不了（中文路径 + JDK 原生层编码限制，见 `.learnings/LEARNINGS.md` L012）——**测试与 APK 构建以 GitHub Actions 为准**（push 自动触发，Actions 页可下载 APK）；本地用 `bash scripts/build.sh assembleDebug` / `compileDebugKotlin` 验证。
+
 ## 首次启动配置
 
 1. 打开 App → 首页「模型设置」→ 填入火山方舟与 DeepSeek 的 API Key（只存本机 DataStore）

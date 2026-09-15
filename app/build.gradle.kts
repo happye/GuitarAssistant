@@ -77,4 +77,6 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     debugImplementation(libs.androidx.ui.tooling)
+
+    testImplementation(libs.junit)
 }

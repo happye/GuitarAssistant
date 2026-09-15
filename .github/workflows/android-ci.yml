@@ -1,0 +1,38 @@
+name: android-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    # L012（见 .learnings/LEARNINGS.md）：本地项目路径含中文，JDK 启动器按 GBK 读
+    # @argfile 导致本地无法运行单元测试；测试与 APK 构建统一以本 CI 为准。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: 确保 Android SDK 36
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" >/dev/null
+
+      - name: 单元测试
+        run: ./gradlew test --no-daemon
+
+      - name: 构建 Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: 上传 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
