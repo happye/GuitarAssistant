@@ -140,7 +140,11 @@ internal fun PracticeTimerCard(repo: PracticeRepository) {
                 startedAt = null
             },
             onSave = { content, note ->
-                scope.launch { repo.save(startedAt = start, durationSeconds = elapsed, content = content, note = note) }
+                scope.launch {
+                    // 结束时按真实时间重算时长（UI 的 elapsed 每秒刷新，最多差 1 秒）
+                    val seconds = ((System.currentTimeMillis() - start) / 1000).toInt()
+                    repo.save(startedAt = start, durationSeconds = seconds, content = content, note = note)
+                }
                 showSave = false
                 startedAt = null
             },

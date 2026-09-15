@@ -3,6 +3,7 @@ package com.guitarcoach.app.core.audio
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -18,6 +19,10 @@ import kotlin.math.sin
  * 时基 = 音频硬件时钟（固定采样率流式写入），BPM 变更从下一拍生效，天然无漂移。
  */
 class MetronomeEngine(private val scope: CoroutineScope) {
+
+    private companion object {
+        const val LOG_TAG = "GuitarCoach"
+    }
 
     private var job: Job? = null
 
@@ -58,8 +63,8 @@ class MetronomeEngine(private val scope: CoroutineScope) {
             .build()
         beatIndex = 0
         job = scope.launch(Dispatchers.IO) {
-            track.play()
             try {
+                track.play()
                 while (isActive) {
                     val beatSamples = sampleRate * 60 / bpm
                     val accent = beatIndex % beatsPerBar == 0L
@@ -67,6 +72,9 @@ class MetronomeEngine(private val scope: CoroutineScope) {
                     track.write(click, 0, click.size, AudioTrack.WRITE_BLOCKING)
                     beatIndex++
                 }
+            } catch (e: Exception) {
+                // 音频设备异常（被占用/拔出等）不静默死亡，留可排查日志
+                Log.e(LOG_TAG, "metronome loop error", e)
             } finally {
                 runCatching { track.stop() }
                 track.release()
