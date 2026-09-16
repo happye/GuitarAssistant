@@ -42,3 +42,11 @@
 - 根因: DeepSeek 用不同 id 区分思考形态（`deepseek-chat`=关 / `deepseek-flash`=开），参数通道已废弃
 - 修复: 代码不传思考参数；按任务选 id（快答→deepseek-chat，深度→deepseek-flash）；见 LEARNINGS L002/L008
 - 验证命令: docs/模型API接入手册.md 的 DeepSeek curl 冒烟，对比两个 id 的响应延迟与 token 账单
+
+## E006 git push 网络间歇失败（代理与直连都不稳）
+
+- 现象: push 时而报 "Failed to connect ... via 127.0.0.1:7890"（用户代理关闭），时而直连 github.com 443 超时；深夜时段两路同时不通
+- 复现条件: 用户 clash 类代理（~/.gitconfig 的 http.https://github.com.proxy=127.0.0.1:7890）关闭或直连被墙
+- 根因: 网络环境依赖本地代理开关；URL 级代理配置覆盖需用 `git -c "http.https://github.com.proxy=" push`（普通 -c http.proxy= 无效）
+- 修复: 双路重试（默认 push → 直连覆盖 push）；两路都挂时定时（每小时）重试并推送 tags，成功后撤任务（本会话已实践：深夜不通、清晨恢复，v0.2.8-v0.2.11 全部补推成功）
+- 验证命令: push 后 `git log origin/main..HEAD` 应为空
