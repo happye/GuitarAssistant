@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import com.guitarcoach.app.core.tab.STANDARD_TUNING_MIDI
+import com.guitarcoach.app.core.music.Tunings
 import com.guitarcoach.app.core.tab.midiToName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +20,8 @@ data class TunerReading(
     val noteName: String,
     val midi: Int,
     val cents: Double,   // 负 = 偏低，正 = 偏高
-    val stringHint: Int, // 标准调弦下最接近的弦（1~6）
+    val stringHint: Int, // 当前调弦下最接近的弦（1~6）
+    val tuningName: String,
 )
 
 /** 调音器：麦克风采样 → MPM 测频 → 与标准音对比。调用方需先取得 RECORD_AUDIO 权限。 */
@@ -28,6 +29,9 @@ class TunerEngine(private val scope: CoroutineScope) {
 
     private val _reading = MutableStateFlow<TunerReading?>(null)
     val reading: StateFlow<TunerReading?> = _reading
+
+    /** 当前调弦（F704）：运行中可切换，下一帧生效。 */
+    @Volatile var tuning: Tunings.Tuning = Tunings.STANDARD
 
     private var job: Job? = null
 
@@ -68,6 +72,7 @@ class TunerEngine(private val scope: CoroutineScope) {
                         midi = midi,
                         cents = PitchDetector.centsOff(pitch.frequency, midi),
                         stringHint = nearestString(midi),
+                        tuningName = tuning.name,
                     )
                 }
             } finally {
@@ -85,10 +90,11 @@ class TunerEngine(private val scope: CoroutineScope) {
     }
 
     private fun nearestString(midi: Int): Int {
+        val t = tuning
         var best = 1
         var bestDist = Int.MAX_VALUE
         for (s in 1..6) {
-            val d = abs(midi - STANDARD_TUNING_MIDI[s - 1])
+            val d = abs(midi - t.midiLowFirst[s - 1])
             if (d < bestDist) {
                 bestDist = d
                 best = s

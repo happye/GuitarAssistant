@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,14 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.guitarcoach.app.core.audio.TunerEngine
+import com.guitarcoach.app.core.tab.midiToName
 import com.guitarcoach.app.data.AppContainer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlin.math.abs
-
-private val STRING_LABELS = listOf(
-    "1 弦 · 高音E", "2 弦 · B", "3 弦 · G", "4 弦 · D", "5 弦 · A", "6 弦 · 低音E",
-)
 
 @Composable
 fun PracticeScreen(container: AppContainer) {
@@ -45,6 +44,15 @@ fun PracticeScreen(container: AppContainer) {
     val reading by engine.reading.collectAsState()
     var running by remember { mutableStateOf(false) }
     var showCoach by remember { mutableStateOf(false) }
+    var tuningName by rememberSaveable { mutableStateOf("E 标准") }
+    // F704 调弦预设：循环切换，运行中也即时生效
+    fun cycleTuning() {
+        val all = com.guitarcoach.app.core.music.Tunings.ALL
+        val idx = all.indexOfFirst { it.name == tuningName }
+        val next = all[(idx + 1).mod(all.size)]
+        engine.tuning = next
+        tuningName = next.name
+    }
 
     if (showCoach) {
         PostureCoachScreen(container = container, onBack = { showCoach = false })
@@ -132,10 +140,11 @@ fun PracticeScreen(container: AppContainer) {
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    reading?.let { "最接近：${STRING_LABELS[it.stringHint - 1]}" } ?: " ",
+                    reading?.let { "最接近：${it.stringHint} 弦（${midiToName(engine.tuning.midiLowFirst[it.stringHint - 1])}）· ${it.tuningName}" } ?: "当前调弦：$tuningName（点击按钮切换）",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                OutlinedButton(onClick = { cycleTuning() }) { Text("调弦：$tuningName") }
                 Button(
                     onClick = {
                         if (!hasPermission) {
