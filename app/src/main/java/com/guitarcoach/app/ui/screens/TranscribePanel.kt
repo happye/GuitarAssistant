@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.guitarcoach.app.core.audio.AudioPcmExtractor
+import com.guitarcoach.app.core.audio.TempoDetector
 import com.guitarcoach.app.core.audio.TranscriptionEngine
 import com.guitarcoach.app.core.tab.MidiTabConverter
 import com.guitarcoach.app.core.tab.TabDocument
@@ -56,10 +57,15 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
         scope.launch {
             try {
                 val doc = withContext(Dispatchers.IO) {
-                    val bpm = bpmText.toIntOrNull()?.coerceIn(40, 300) ?: 120
                     val pcm = context.contentResolver.openFileDescriptor(uri, "r")?.use {
                         AudioPcmExtractor().extractToMono(it.fileDescriptor, targetRate = 22050)
                     } ?: throw IllegalArgumentException("文件读取失败，请重试")
+                    // F706 BPM 自动检测：检出即预填并采用；用户手输值优先生效
+                    val bpm = if (bpmText.isBlank()) {
+                        (TempoDetector.detect(pcm.pcm, pcm.sampleRate) ?: 120).also { bpmText = it.toString() }
+                    } else {
+                        bpmText.toIntOrNull()?.coerceIn(40, 300) ?: 120
+                    }
                     progressText = "转写中…"
                     val engine = TranscriptionEngine(context)
                     val midiNotes = try {
@@ -109,7 +115,7 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                     value = bpmText,
                     onValueChange = { bpmText = it.filter { c -> c.isDigit() }.take(3) },
                     modifier = Modifier.padding(0.dp),
-                    label = { Text("BPM") },
+                    label = { Text("BPM（留空=自动检测）") },
                     singleLine = true,
                 )
             }

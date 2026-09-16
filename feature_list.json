@@ -402,6 +402,14 @@
       "status": "done",
       "passes": true,
       "test_criteria": "Tunings 数据 7 项各 6 值；nearestString 换 tuning 即刻生效（引擎逻辑，真机验证认弦体验）"
+    },
+    {
+      "id": "F705",
+      "milestone": "M7",
+      "title": "节拍器高级化：每拍细分 ×1-4 + 预备拍 count-in + 重音 pattern（引擎层）",
+      "status": "done",
+      "passes": true,
+      "test_criteria": "引擎生成逻辑（子拍弱音/count-in 高音/pattern 循环）随 UI 实测；AudioTrack 时基不变"
     }
   ]
 }
