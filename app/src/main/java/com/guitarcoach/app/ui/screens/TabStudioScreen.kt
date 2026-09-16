@@ -194,6 +194,9 @@ fun TabStudioScreen(container: AppContainer) {
                     Text("❌ $it", modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
                 }
             }
+
+            // M6 扒谱（实验）：抽 PCM 备转写；F602 转写引擎接入后生成谱面
+            TranscribeSection(container = container)
         }
 
         // 展示（拍谱结果优先，其次文本谱/GP 结果）；F203 编辑回写；F202 谱面渲染与点按试听；F502 曲库
