@@ -12,16 +12,17 @@ import kotlinx.serialization.json.Json
 private val saveableJson = Json { ignoreUnknownKeys = true; isLenient = true; coerceInputValues = true }
 
 fun <T> jsonSaver(serializer: KSerializer<T>): Saver<T, String> = Saver(
-    save = { saveableJson.encodeToString(serializer, it) },
+    // save/restore 对称防御：类型图将来出现不可序列化字段时，状态保存阶段不能崩（监督员 P2）
+    save = { runCatching { saveableJson.encodeToString(serializer, it) }.getOrDefault("") },
     restore = { runCatching { saveableJson.decodeFromString(serializer, it) }.getOrNull() },
 )
 
 fun <T> nullableJsonSaver(serializer: KSerializer<T>): Saver<T?, String> = Saver(
-    save = { it?.let { v -> saveableJson.encodeToString(serializer, v) } ?: "" },
+    save = { it?.let { v -> runCatching { saveableJson.encodeToString(serializer, v) }.getOrDefault("") } ?: "" },
     restore = { if (it.isBlank()) null else runCatching { saveableJson.decodeFromString(serializer, it) }.getOrNull() },
 )
 
 fun <T> jsonListSaver(serializer: KSerializer<T>): Saver<List<T>, String> = Saver(
-    save = { saveableJson.encodeToString(ListSerializer(serializer), it) },
+    save = { runCatching { saveableJson.encodeToString(ListSerializer(serializer), it) }.getOrDefault("") },
     restore = { runCatching { saveableJson.decodeFromString(ListSerializer(serializer), it) }.getOrNull() ?: emptyList() },
 )

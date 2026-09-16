@@ -47,18 +47,14 @@ internal fun TranscribeSection(container: AppContainer) {
         scope.launch {
             try {
                 val info = withContext(Dispatchers.IO) {
-                    val pcm = context.contentResolver.openFileDescriptor(uri, "r")?.use {
-                        AudioPcmExtractor().extractToMono(it.fileDescriptor, targetRate = 16000)
-                    } ?: throw IllegalArgumentException("文件读取失败，请重试")
-                    // 落缓存：F602 转写引擎直接消费该文件
+                    // 长音频流式落盘（用户反馈：Whole Lotta Love 5 分半在旧全量实现上报错）
                     val out = File(context.cacheDir, "transcribe_${System.currentTimeMillis()}.pcm")
-                    out.outputStream().use { s ->
-                        val bytes = ByteArray(pcm.pcm.size * 2)
-                        java.nio.ByteBuffer.wrap(bytes).order(java.nio.ByteOrder.LITTLE_ENDIAN)
-                            .asShortBuffer().put(pcm.pcm)
-                        s.write(bytes)
-                    }
-                    "%.1f".format(pcm.durationSeconds) to out
+                    val result = context.contentResolver.openFileDescriptor(uri, "r")?.use {
+                        out.outputStream().use { fos ->
+                            AudioPcmExtractor().extractToMono(it.fileDescriptor, fos, targetRate = 16000)
+                        }
+                    } ?: throw IllegalArgumentException("文件读取失败，请重试")
+                    "%.1f".format(result.durationSeconds) to out
                 }
                 status = "已抽出 ${info.first} 的 16kHz 单声道 PCM（${info.second.length() / 1024} KB）——转写引擎接入后即可生成谱面"
             } catch (e: CancellationException) {

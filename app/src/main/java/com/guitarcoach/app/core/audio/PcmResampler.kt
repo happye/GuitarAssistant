@@ -50,3 +50,56 @@ object PcmResampler {
     private fun Double.roundToShortCompat(): Short =
         kotlin.math.round(this).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
 }
+
+/**
+ * 流式重采样（F601 长音频修复）：解码块喂入 → 输出块回调直写文件，全程不驻留全曲 PCM。
+ * 与 [toMonoRate] 同一套线性插值口径：跨块用上一块尾部样本衔接，输出全局对齐（无逐块相位漂移）。
+ */
+class StreamingResampler(val inputRate: Int, val channels: Int, private val targetRate: Int) {
+
+    private val ratio = inputRate.toDouble() / targetRate
+    private var inCount = 0L     // 已消费的单声道帧数
+    private var outCount = 0L    // 已产出的输出帧数
+    private var tailBuffer: DoubleArray = DoubleArray(0) // 上一块 mono（跨块插值可能用到倒数第 2 帧）
+
+    fun feed(input: ShortArray, sink: (ShortArray) -> Unit) {
+        require(channels >= 1)
+        val mono = if (channels > 1) {
+            val frames = input.size / channels
+            DoubleArray(frames) { f ->
+                var sum = 0
+                for (c in 0 until channels) sum += input[f * channels + c].toInt()
+                sum.toDouble() / channels
+            }
+        } else {
+            DoubleArray(input.size) { input[it].toDouble() }
+        }
+        val total = inCount + mono.size
+        val outs = ShortArray((mono.size / ratio + 2).toInt().coerceAtLeast(0))
+        var oi = 0
+        var f = outCount * ratio
+        while (f + 1 <= total - 1) {
+            val i0 = f.toLong()
+            val frac = f - i0
+            val s0 = sampleAt(i0, mono)
+            val s1 = sampleAt(i0 + 1, mono)
+            outs[oi++] = (s0 + (s1 - s0) * frac).roundToShortCompat()
+            outCount++
+            f = outCount * ratio
+        }
+        if (oi > 0) sink(outs.copyOf(oi))
+        tailBuffer = mono
+        inCount = total
+    }
+
+    /** 全局帧索引取值：< inCount 落在上一块（尾对齐），否则在当前块。 */
+    private fun sampleAt(globalIndex: Long, mono: DoubleArray): Double =
+        if (globalIndex < inCount) {
+            tailBuffer[(tailBuffer.size - (inCount - globalIndex)).toInt().coerceIn(0, tailBuffer.size - 1)]
+        } else {
+            mono[(globalIndex - inCount).toInt()]
+        }
+
+    private fun Double.roundToShortCompat(): Short =
+        kotlin.math.round(this).toInt().coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+}

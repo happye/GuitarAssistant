@@ -67,7 +67,7 @@ fun TheoryScreen(container: AppContainer) {
     val listState = rememberLazyListState()
 
     LaunchedEffect(messages.size, streamingText?.length) {
-        val count = messages.size + if (streamingText != null) 1 else 0
+        val count = messages.size + if (streaming && streamingText != null) 1 else 0
         if (count > 0) listState.scrollToItem(count - 1)
     }
 

@@ -38,3 +38,9 @@
 - 严重程度: low
 - 影响: docs/references/coding-standards.md 单文件 ≤300 行；识谱工作台把拍谱路径、文本谱路径、结果列表都装在一个文件里，继续膨胀会失控
 - 计划偿还: F208 乐句卡片 UI 改造时顺手拆分——拍谱输入区与 ParsedTabList 各自成文件（PhraseCoachPanel.kt 已是现成拆分模式）；此前新增识谱相关 UI 一律放独立文件，不再往 TabStudioScreen 塞
+
+## DEBT-006：debug keystore 已随仓库公开（2026-09-17）
+
+- 现状：keystore/debug.keystore 入库（debug 专用弱口令，仅用于统一本地/CI 签名让 APK 可覆盖安装），签名为 CN=GuitarCoach Debug
+- 风险窗口：任何人可造同签名 debug APK 冒充更新；当前个人项目场景可接受
+- 偿还条件：上 Google Play/对外发布前，换正式签名（不入库、密钥进本机 keychain），且 debug/正式签名明确区分

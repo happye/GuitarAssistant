@@ -63,7 +63,8 @@ fun TabStudioScreen(container: AppContainer) {
     var extracting by remember { mutableStateOf(false) }
     var extractError by rememberSaveable { mutableStateOf<String?>(null) }
     var extracted by rememberSaveable(stateSaver = nullableJsonSaver(ExtractResult.serializer())) { mutableStateOf<ExtractResult?>(null) }
-    var imageBase64 by rememberSaveable { mutableStateOf<String?>(null) } // 仅用于 F208 原图对照（讲解不看图，F204）
+    // 原图对照不进 saveable（base64 数百 KB 会撑爆 onSaveInstanceState 的 1MB binder 缓冲，监督员 P1）
+    var imageBase64 by remember { mutableStateOf<String?>(null) } // 仅用于 F208 原图对照（讲解不看图，F204）
     var explainText by rememberSaveable { mutableStateOf<String?>(null) }
     var explaining by remember { mutableStateOf(false) }
 
