@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -37,7 +38,7 @@ fun HomeScreen(container: AppContainer) {
     var settings by remember { mutableStateOf<AppSettings?>(null) }
     var editing by remember { mutableStateOf(false) }
     var testing by remember { mutableStateOf(false) }
-    var testResult by remember { mutableStateOf<String?>(null) }
+    var testResult by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         settings = container.settings.current()

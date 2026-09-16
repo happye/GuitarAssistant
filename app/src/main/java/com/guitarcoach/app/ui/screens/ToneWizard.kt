@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -31,8 +32,8 @@ import kotlinx.coroutines.launch
  */
 @Composable
 internal fun ToneWizardDialog(container: AppContainer, onDismiss: () -> Unit) {
-    var request by remember { mutableStateOf("") }
-    var answer by remember { mutableStateOf<String?>(null) }
+    var request by rememberSaveable { mutableStateOf("") }
+    var answer by rememberSaveable { mutableStateOf<String?>(null) }
     var running by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()

@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -37,8 +38,8 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun MetronomeCard() {
     val engine = remember { MetronomeEngine(CoroutineScope(Dispatchers.Default)) }
-    var bpm by remember { mutableIntStateOf(100) }
-    var beats by remember { mutableIntStateOf(4) }
+    var bpm by rememberSaveable { mutableIntStateOf(100) }
+    var beats by rememberSaveable { mutableIntStateOf(4) }
     var running by remember { mutableStateOf(false) }
     DisposableEffect(Unit) { onDispose { engine.stop() } }
 
@@ -94,7 +95,7 @@ internal fun MetronomeCard() {
 @Composable
 internal fun PracticeTimerCard(repo: PracticeRepository) {
     val scope = rememberCoroutineScope()
-    var startedAt by remember { mutableStateOf<Long?>(null) }
+    var startedAt by rememberSaveable { mutableStateOf<Long?>(null) }
     var elapsed by remember { mutableIntStateOf(0) }
     var showSave by remember { mutableStateOf(false) }
 
@@ -158,8 +159,8 @@ private fun SavePracticeDialog(
     onDismiss: () -> Unit,
     onSave: (content: String, note: String) -> Unit,
 ) {
-    var content by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
+    var content by rememberSaveable { mutableStateOf("") }
+    var note by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("保存练习记录（${formatElapsed(durationSeconds)}）") },

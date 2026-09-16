@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -67,7 +68,7 @@ internal fun RiffPracticeCard() {
     DisposableEffect(Unit) { onDispose { engine.stop() } }
     val reading by engine.reading.collectAsState()
 
-    var presetIndex by remember { mutableIntStateOf(0) }
+    var presetIndex by rememberSaveable { mutableIntStateOf(0) }
     var recording by remember { mutableStateOf(false) }
     var startAt by remember { mutableStateOf(0L) }
     val samples = remember { mutableStateListOf<Pair<Long, Int?>>() } // (墙钟ms, midi|null)

@@ -66,4 +66,5 @@ class LlmTabExtractor(private val visionChain: suspend () -> List<com.guitarcoac
     }
 }
 
+@kotlinx.serialization.Serializable
 data class ExtractResult(val document: TabDocument, val warnings: List<String>)

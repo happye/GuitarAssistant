@@ -21,6 +21,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -74,7 +75,7 @@ fun ProfileScreen(container: AppContainer) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                var reviewText by remember { mutableStateOf<String?>(null) }
+                var reviewText by rememberSaveable { mutableStateOf<String?>(null) }
                 var reviewing by remember { mutableStateOf(false) }
                 var reviewError by remember { mutableStateOf<String?>(null) }
                 val scope = rememberCoroutineScope()

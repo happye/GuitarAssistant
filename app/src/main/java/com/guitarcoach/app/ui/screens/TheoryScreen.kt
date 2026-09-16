@@ -27,6 +27,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,17 +52,17 @@ fun TheoryScreen(container: AppContainer) {
     val repo = container.chatRepository
     val scope = rememberCoroutineScope()
     val conversations by repo.observeConversations().collectAsState(initial = emptyList())
-    var currentId by remember { mutableStateOf<Long?>(null) }
+    var currentId by rememberSaveable { mutableStateOf<Long?>(null) }
     val messages by repo.observeMessages(currentId ?: NO_CONVERSATION).collectAsState(initial = emptyList())
-    var streamingText by remember { mutableStateOf<String?>(null) }
-    var streamingConvId by remember { mutableStateOf<Long?>(null) }
-    var input by remember { mutableStateOf("") }
+    var streamingText by rememberSaveable { mutableStateOf<String?>(null) }
+    var streamingConvId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var input by rememberSaveable { mutableStateOf("") }
     var streaming by remember { mutableStateOf(false) }
-    var showSessions by remember { mutableStateOf(false) }
-    var showCards by remember { mutableStateOf(false) }
-    var showFretboard by remember { mutableStateOf(false) }
-    var showTranspose by remember { mutableStateOf(false) }
-    var showToneWizard by remember { mutableStateOf(false) }
+    var showSessions by rememberSaveable { mutableStateOf(false) }
+    var showCards by rememberSaveable { mutableStateOf(false) }
+    var showFretboard by rememberSaveable { mutableStateOf(false) }
+    var showTranspose by rememberSaveable { mutableStateOf(false) }
+    var showToneWizard by rememberSaveable { mutableStateOf(false) }
     var renameTarget by remember { mutableStateOf<com.guitarcoach.app.data.db.ConversationEntity?>(null) }
     val listState = rememberLazyListState()
 

@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -31,7 +32,7 @@ import com.guitarcoach.app.core.music.TransposeCalculator
  */
 @Composable
 fun TransposeDialog(onDismiss: () -> Unit) {
-    var mode by remember { mutableIntStateOf(0) }
+    var mode by rememberSaveable { mutableIntStateOf(0) }
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text("关闭") } },
@@ -50,9 +51,9 @@ fun TransposeDialog(onDismiss: () -> Unit) {
 
 @Composable
 private fun TransposeMode() {
-    var fromKey by remember { mutableStateOf("C") }
-    var toKey by remember { mutableStateOf("G") }
-    var chords by remember { mutableStateOf("") }
+    var fromKey by rememberSaveable { mutableStateOf("C") }
+    var toKey by rememberSaveable { mutableStateOf("G") }
+    var chords by rememberSaveable { mutableStateOf("") }
 
     val diff = TransposeCalculator.semitonesUp(fromKey, toKey)
     KeyField(label = "原调", value = fromKey, onValueChange = { fromKey = it })
@@ -85,9 +86,9 @@ private fun TransposeMode() {
 
 @Composable
 private fun CapoMode() {
-    var originalKey by remember { mutableStateOf("C") }
-    var shapeKey by remember { mutableStateOf("G") }
-    var fretText by remember { mutableStateOf("") }
+    var originalKey by rememberSaveable { mutableStateOf("C") }
+    var shapeKey by rememberSaveable { mutableStateOf("G") }
+    var fretText by rememberSaveable { mutableStateOf("") }
 
     KeyField(label = "歌曲原调", value = originalKey, onValueChange = { originalKey = it })
     KeyField(label = "想用的指法调", value = shapeKey, onValueChange = { shapeKey = it })

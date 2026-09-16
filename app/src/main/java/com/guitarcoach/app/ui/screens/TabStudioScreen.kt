@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -34,6 +35,7 @@ import com.guitarcoach.app.core.tab.globalBarNumber
 import com.guitarcoach.app.core.tab.withBar
 import com.guitarcoach.app.core.vision.FrameCodec
 import com.guitarcoach.app.data.AppContainer
+import com.guitarcoach.app.ui.nullableJsonSaver
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,21 +55,21 @@ fun TabStudioScreen(container: AppContainer) {
     val scope = rememberCoroutineScope()
 
     // —— 文本谱路径（F104）——
-    var pasteText by remember { mutableStateOf("") }
-    var document by remember { mutableStateOf<TabDocument?>(null) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var pasteText by rememberSaveable { mutableStateOf("") }
+    var document by rememberSaveable(stateSaver = nullableJsonSaver(TabDocument.serializer())) { mutableStateOf<TabDocument?>(null) }
+    var error by rememberSaveable { mutableStateOf<String?>(null) }
 
     // —— 拍谱路径（F201）——
     var extracting by remember { mutableStateOf(false) }
-    var extractError by remember { mutableStateOf<String?>(null) }
-    var extracted by remember { mutableStateOf<ExtractResult?>(null) }
-    var imageBase64 by remember { mutableStateOf<String?>(null) } // 仅用于 F208 原图对照（讲解不看图，F204）
-    var explainText by remember { mutableStateOf<String?>(null) }
+    var extractError by rememberSaveable { mutableStateOf<String?>(null) }
+    var extracted by rememberSaveable(stateSaver = nullableJsonSaver(ExtractResult.serializer())) { mutableStateOf<ExtractResult?>(null) }
+    var imageBase64 by rememberSaveable { mutableStateOf<String?>(null) } // 仅用于 F208 原图对照（讲解不看图，F204）
+    var explainText by rememberSaveable { mutableStateOf<String?>(null) }
     var explaining by remember { mutableStateOf(false) }
 
     // —— 展示与编辑 ——
     var editTarget by remember { mutableStateOf<Pair<Int, Int>?>(null) } // F203：sectionIndex to barIndex
-    var showRender by remember { mutableStateOf(false) } // F202：展示模式（列表 / 谱面渲染）
+    var showRender by rememberSaveable { mutableStateOf(false) } // F202：展示模式（列表 / 谱面渲染）
 
     fun extractFrom(uri: Uri) {
         scope.launch {

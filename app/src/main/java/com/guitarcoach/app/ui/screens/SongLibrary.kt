@@ -24,6 +24,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,8 +65,8 @@ private fun SongLibraryDialog(
 ) {
     val entries by container.songRepository.observeAll().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
-    var searchText by remember { mutableStateOf("") }
-    var saveTitle by remember { mutableStateOf("") }
+    var searchText by rememberSaveable { mutableStateOf("") }
+    var saveTitle by rememberSaveable { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
     val dateFormat = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
 

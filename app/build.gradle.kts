@@ -14,8 +14,10 @@ android {
         applicationId = "com.guitarcoach.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        // 版本注入：CI 打 tag 时传 -PpkgVersionName/-PpkgVersionCode（versionCode=提交数，单调递增）；
+        // 本地缺省值随当前开发版本走。覆盖安装的关键是签名统一（keystore/debug.keystore 入库）。
+        versionCode = (project.findProperty("pkgVersionCode")?.toString()?.toInt()) ?: 26
+        versionName = (project.findProperty("pkgVersionName") as String?) ?: "0.2.8"
 
         ndk {
             // 适配基线：小米 14（骁龙 8 Gen 3 为 64 位专用 SoC），只出 arm64-v8a；
@@ -33,6 +35,15 @@ android {
             )
         }
     }
+    signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

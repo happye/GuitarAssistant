@@ -29,8 +29,9 @@ jobs:
       - name: 单元测试
         run: ./gradlew test --no-daemon
 
+      # versionCode=提交数（单调递增），versionName=tag 号（去掉 v 前缀）
       - name: 构建 Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon "-PpkgVersionCode=$(git rev-list --count HEAD)" "-PpkgVersionName=${GITHUB_REF_NAME#v}"
 
       # 改名带版本号，方便用户分辨；debug 签名可直接安装
       - name: 重命名 APK
