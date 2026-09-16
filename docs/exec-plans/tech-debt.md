@@ -44,3 +44,9 @@
 - 现状：keystore/debug.keystore 入库（debug 专用弱口令，仅用于统一本地/CI 签名让 APK 可覆盖安装），签名为 CN=GuitarCoach Debug
 - 风险窗口：任何人可造同签名 debug APK 冒充更新；当前个人项目场景可接受
 - 偿还条件：上 Google Play/对外发布前，换正式签名（不入库、密钥进本机 keychain），且 debug/正式签名明确区分
+
+## DEBT-007：谱面渲染升级 alphaTab 引擎（评估项，2026-09-17）
+
+- 现状：F202 v2 为自绘精修（参考 Songsterr/alphaTab 记谱惯例：品数落线/拍位比例展开/技巧记号/段落条），观感已可用
+- 升级路径：alphaTab 1.8.4 完整渲染需要 AlphaSkia 原生库（额外 .so，APK +10~20MB）+ Bravura.otf 字体入 assets + AlphaSkiaAndroid 初始化链；已实探 classes.jar/sources 确认可行性，未引入
+- 偿还条件：用户对自绘观感仍不满意，或需要五线谱双谱/复杂拍号/回放光标时立项

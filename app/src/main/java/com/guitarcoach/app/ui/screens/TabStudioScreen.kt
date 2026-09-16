@@ -86,7 +86,7 @@ fun TabStudioScreen(container: AppContainer) {
                     FrameCodec.toBase64Jpeg(bitmap).also { bitmap.recycle() }
                 }
                 imageBase64 = base64
-                extracted = container.tabExtractor.extract(base64)
+                extracted = container.tabExtractor.extractVerified(base64)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

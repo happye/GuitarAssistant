@@ -35,6 +35,38 @@ class LlmTabExtractor(private val visionChain: suspend () -> List<com.guitarcoac
         return clean(doc)
     }
 
+    /**
+     * 识谱 + CoVe 式自校验（用户反馈#4：准确性不足）：第一遍识别 → 把原图与初次 JSON
+     * 再送视觉模型逐小节核对 → 用修正版。第二遍失败/不可解析时回退第一遍结果（降级不阻断）。
+     */
+    suspend fun extractVerified(imageBase64: String): ExtractResult {
+        val first = extract(imageBase64)
+        val second = runCatching {
+            val raw = LlmFallback.completeWithFallback(visionChain()) {
+                ChatSpec(
+                    system = CoachPrompts.TAB_VERIFY,
+                    user = "原图见附件。初次识别 JSON：\n" +
+                        json.encodeToString(TabDocument.serializer(), first.document) +
+                        "\n请对照原图核对并输出修正后的完整 JSON。",
+                    images = listOf(EncodedImage(imageBase64)),
+                    maxTokens = 4096,
+                    temperature = 0.1,
+                    jsonMode = true,
+                )
+            }
+            val doc = json.decodeFromString<TabDocument>(extractJsonBlock(raw))
+            clean(doc)
+        }.getOrElse { return first }
+        // 修正版显著缩水（核对反而漏音）时保守回退第一遍
+        val n1 = first.document.sections.sumOf { s -> s.bars.sumOf { it.notes.size } }
+        val n2 = second.document.sections.sumOf { s -> s.bars.sumOf { it.notes.size } }
+        return if (n1 > 0 && n2 < n1 / 2) {
+            first.copy(warnings = first.warnings + "自校验结果异常（音符数 $n2 < $n1），已采用初次识别")
+        } else {
+            second.copy(warnings = second.warnings + "已对照原图完成逐小节自校验")
+        }
+    }
+
     /** 从模型回复中抠出 JSON（容忍代码块围栏与多余说明文字）。 */
     private fun extractJsonBlock(text: String): String {
         val start = text.indexOf('{')

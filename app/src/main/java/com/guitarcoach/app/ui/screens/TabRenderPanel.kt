@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -16,13 +17,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -30,12 +36,12 @@ import com.guitarcoach.app.core.audio.TonePlayer
 import com.guitarcoach.app.core.tab.TabDocument
 import com.guitarcoach.app.core.tab.TabLayout
 import com.guitarcoach.app.core.tab.midi
-import kotlin.math.roundToInt
 
 /**
- * F202 谱面渲染（自绘 Canvas 版）：横向滚动六线谱网格，点按音符试听。
- * 频率唯一来源 TabDocument.midiToFreq —— 点按发声与换算口径一致（验收标准）。
- * alphaTab 精渲染为后续升级路径（引入需改 gradle 配置，待用户确认）。
+ * F202 谱面渲染 v2（用户反馈#4 观感提升）：参考 Songsterr / alphaTab 的 TAB 记谱惯例精修自绘——
+ * 品数直接落线（白底块护读）、按 4/4 拍位比例水平展开、拍位刻度、段落名条、弦名标签、
+ * 技巧记号（H/P/S/B/PM/M/V/A）、终止双线、选中高亮。频率唯一来源 TabDocument.midiToFreq。
+ * alphaTab 完整渲染引擎（AlphaSkia 原生链 + Bravura 字体）列为 DEBT 评估项，v1 不引入。
  */
 @Composable
 fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
@@ -45,76 +51,164 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
     val textMeasurer = rememberTextMeasurer()
     var selected by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     val density = LocalDensity.current
-    val barWidth = with(density) { 200.dp.toPx() }
+    val barWidth = with(density) { 240.dp.toPx() }
     val spacing = with(density) { 18.dp.toPx() }
-    val topPad = with(density) { 26.dp.toPx() }
-    val barPad = with(density) { 14.dp.toPx() }
+    val topPad = with(density) { 34.dp.toPx() }   // 段落名条 + 技巧记号空间
+    val barPad = with(density) { 16.dp.toPx() }
+    val nameGutter = with(density) { 20.dp.toPx() } // 行首弦名区
     val geometry = TabLayout.Geometry(barWidth, spacing, topPad, barPad)
     val placed = remember(doc, barWidth, spacing, topPad, barPad) { TabLayout.layout(doc, geometry) }
 
     val barCount = doc.sections.sumOf { it.bars.size }.coerceAtLeast(1)
-    val canvasWidthDp = with(density) { (barCount * barWidth).toDp() }
-    val canvasHeightDp = with(density) { (topPad + 6 * spacing + 8.dp.toPx()).toDp() }
-    val tapRadius = with(density) { 22.dp.toPx() }
+    val canvasWidthDp = with(density) { (barCount * barWidth + nameGutter).toDp() }
+    val canvasHeightDp = with(density) { (topPad + 6 * spacing + 12.dp.toPx()).toDp() }
+    val tapRadius = with(density) { 24.dp.toPx() }
 
-    val lineColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val noteColor = MaterialTheme.colorScheme.primary
-    val selColor = MaterialTheme.colorScheme.tertiary
-    val noteTextColor = Color.White
+    val lineColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+    val beatTickColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.18f)
+    val noteBg = MaterialTheme.colorScheme.surface
+    val noteFg = MaterialTheme.colorScheme.onSurface
+    val selColor = MaterialTheme.colorScheme.primary
+    val sectionBg = MaterialTheme.colorScheme.secondaryContainer
+    val sectionFg = MaterialTheme.colorScheme.onSecondaryContainer
+
+    // 段落名（段落首小节号 → 名称）
+    val sectionLabels = remember(doc) {
+        var bar = 0
+        doc.sections.mapNotNull { section ->
+            val start = bar
+            bar += section.bars.size
+            if (section.name.isNotBlank() && section.bars.isNotEmpty()) start to section.name else null
+        }
+    }
 
     Column(modifier) {
         Text(
-            "点按音符可试听（音高按标准调弦换算）",
+            "调弦 ${doc.tuning} · ${doc.tempo} BPM · ${barCount} 小节 · 点按音符试听",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Canvas(
-            modifier = Modifier
-                .horizontalScroll(rememberScrollState())
-                .width(canvasWidthDp)
-                .height(canvasHeightDp)
-                .pointerInput(doc) {
-                    detectTapGestures { pos ->
-                        val hit = placed.minByOrNull { p -> (p.x - pos.x) * (p.x - pos.x) + (p.y - pos.y) * (p.y - pos.y) }
-                        if (hit != null) {
-                            val d2 = (hit.x - pos.x) * (hit.x - pos.x) + (hit.y - pos.y) * (hit.y - pos.y)
-                            if (d2 <= tapRadius * tapRadius) {
-                                tonePlayer.play(hit.note.midi())
-                                selected = hit.barIndex to hit.noteIndex
+        Surface(shape = MaterialTheme.shapes.medium, tonalElevation = 1.dp) {
+            Canvas(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .width(canvasWidthDp)
+                    .height(canvasHeightDp)
+                    .pointerInput(doc) {
+                        detectTapGestures { pos ->
+                            val hit = placed.minByOrNull { p -> (p.x - pos.x) * (p.x - pos.x) + (p.y - pos.y) * (p.y - pos.y) }
+                            if (hit != null) {
+                                val d2 = (hit.x - pos.x) * (hit.x - pos.x) + (hit.y - pos.y) * (hit.y - pos.y)
+                                if (d2 <= tapRadius * tapRadius) {
+                                    tonePlayer.play(hit.note.midi())
+                                    selected = hit.barIndex to hit.noteIndex
+                                }
                             }
                         }
+                    },
+            ) {
+                val gutter = nameGutter
+                val strings = listOf("e", "B", "G", "D", "A", "E")
+
+                // 行首弦名（1 弦在最上）
+                strings.forEachIndexed { i, name ->
+                    drawLabel(textMeasurer, name, Offset(4.dp.toPx(), topPad + i * spacing), 10.sp, lineColor, bold = true)
+                }
+
+                // 段落名条
+                sectionLabels.forEach { (bar, name) ->
+                    val label = textMeasurer.measure(name, TextStyle(fontSize = 11.sp, color = sectionFg, fontWeight = FontWeight.SemiBold))
+                    val padH = 6.dp.toPx()
+                    val rectW = label.size.width + padH * 2
+                    val rectH = label.size.height + 4.dp.toPx()
+                    drawRoundRect(sectionBg, topLeft = Offset(gutter + bar * barWidth, 2.dp.toPx()), size = Size(rectW, rectH), cornerRadius = CornerRadius(6.dp.toPx()))
+                    drawText(label, topLeft = Offset(gutter + bar * barWidth + padH, 4.dp.toPx()))
+                }
+
+                // 拍位刻度（每拍一条浅竖线）
+                for (b in 0 until barCount) {
+                    for (t in 1..3) {
+                        val x = gutter + b * barWidth + barPad + t / 4f * (barWidth - 2 * barPad)
+                        drawLine(beatTickColor, Offset(x, topPad - 4.dp.toPx()), Offset(x, topPad + 5 * spacing + 4.dp.toPx()), strokeWidth = 1.dp.toPx())
                     }
-                },
-        ) {
-            // 六根琴弦（1 弦在最上）
-            for (s in 0..5) {
-                val y = topPad + s * spacing
-                drawLine(lineColor, Offset(0f, y), Offset(size.width, y), strokeWidth = 1.5.dp.toPx())
-            }
-            // 小节线与小节号
-            for (b in 0..barCount) {
-                val x = b * barWidth
-                drawLine(
-                    lineColor,
-                    Offset(x, topPad - 6.dp.toPx()),
-                    Offset(x, topPad + 5 * spacing + 6.dp.toPx()),
-                    strokeWidth = 2.dp.toPx(),
-                )
-            }
-            for (b in 0 until barCount) {
-                val label = textMeasurer.measure("${b + 1}", TextStyle(fontSize = 10.sp, color = lineColor))
-                drawText(label, topLeft = Offset(b * barWidth + 3.dp.toPx(), 1.dp.toPx()))
-            }
-            // 音符：品号圆点，选中的高亮
-            placed.forEach { p ->
-                val isSel = selected == p.barIndex to p.noteIndex
-                drawCircle(color = if (isSel) selColor else noteColor, radius = 9.dp.toPx(), center = Offset(p.x, p.y))
-                val label = textMeasurer.measure(
-                    "${p.note.fret}",
-                    TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold, color = noteTextColor),
-                )
-                drawText(label, topLeft = Offset(p.x - label.size.width / 2f, p.y - label.size.height / 2f))
+                }
+
+                // 六根谱线（1 弦在最上）
+                for (s in 0..5) {
+                    val y = topPad + s * spacing
+                    drawLine(lineColor, Offset(gutter, y), Offset(gutter + barCount * barWidth, y), strokeWidth = 1.2.dp.toPx())
+                }
+
+                // 小节线 + 小节号 + 终止双线
+                for (b in 0..barCount) {
+                    val x = gutter + b * barWidth
+                    drawLine(lineColor, Offset(x, topPad - 8.dp.toPx()), Offset(x, topPad + 5 * spacing + 8.dp.toPx()), strokeWidth = if (b == barCount) 2.dp.toPx() else 1.5.dp.toPx())
+                    if (b == barCount) {
+                        drawLine(lineColor, Offset(x - 4.dp.toPx(), topPad - 8.dp.toPx()), Offset(x - 4.dp.toPx(), topPad + 5 * spacing + 8.dp.toPx()), strokeWidth = 2.dp.toPx())
+                    }
+                }
+                for (b in 0 until barCount) {
+                    drawLabel(textMeasurer, "${b + 1}", Offset(gutter + b * barWidth + 3.dp.toPx(), topPad - 20.dp.toPx()), 9.sp, lineColor)
+                }
+
+                // 音符：品数落线（底块护读），同拍多音自然竖直对齐
+                placed.forEach { p ->
+                    val isSel = selected == p.barIndex to p.noteIndex
+                    val label = textMeasurer.measure(
+                        "${p.note.fret}",
+                        TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (isSel) Color.White else noteFg, fontFamily = FontFamily.Monospace),
+                    )
+                    val padH = 4.dp.toPx()
+                    val w = label.size.width + padH * 2
+                    val h = label.size.height + 2.dp.toPx()
+                    val bg = if (isSel) selColor else noteBg
+                    drawRoundRect(
+                        bg,
+                        topLeft = Offset(p.x - w / 2, p.y - h / 2),
+                        size = Size(w, h),
+                        cornerRadius = CornerRadius(4.dp.toPx()),
+                    )
+                    if (isSel) {
+                        drawRoundRect(
+                            selColor,
+                            topLeft = Offset(p.x - w / 2 - 2.dp.toPx(), p.y - h / 2 - 2.dp.toPx()),
+                            size = Size(w + 4.dp.toPx(), h + 4.dp.toPx()),
+                            cornerRadius = CornerRadius(5.dp.toPx()),
+                            style = Stroke(width = 2.dp.toPx()),
+                        )
+                    }
+                    drawText(label, topLeft = Offset(p.x - label.size.width / 2f, p.y - label.size.height / 2f))
+
+                    // 技巧记号（音上方）
+                    p.note.technique?.let { tech ->
+                        drawLabel(textMeasurer, techMark(tech), Offset(p.x - 6.dp.toPx(), p.y - spacing * 0.72f), 9.sp, selColor, bold = true)
+                    }
+                }
             }
         }
     }
+}
+
+private fun DrawScope.drawLabel(
+    textMeasurer: androidx.compose.ui.text.TextMeasurer,
+    text: String,
+    at: Offset,
+    size: androidx.compose.ui.unit.TextUnit,
+    color: Color,
+    bold: Boolean = false,
+) {
+    val measured = textMeasurer.measure(text, TextStyle(fontSize = size, color = color, fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal))
+    drawText(measured, topLeft = at)
+}
+
+private fun techMark(technique: String): String = when (technique) {
+    "hammer_on" -> "H"
+    "pull_off" -> "P"
+    "slide" -> "S"
+    "bend" -> "B"
+    "palm_mute" -> "PM"
+    "mute" -> "M"
+    "vibrato" -> "V"
+    "harmonic" -> "A"
+    else -> ""
 }

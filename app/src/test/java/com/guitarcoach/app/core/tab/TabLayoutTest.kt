@@ -34,11 +34,11 @@ class TabLayoutTest {
         val bar1 = placed.filter { it.barIndex == 0 }.sortedBy { it.note.beat }
         // beat 0 → 内区左缘 = 0*200+12 = 12
         assertEquals(12f, bar1[0].x, 1e-4f)
-        // beat 2 / maxBeat 2 = 1.0 → 内区右缘 = 12 + 176 = 188
-        assertEquals(188f, bar1[1].x, 1e-4f)
-        // 第二小节 beat 0.5：maxBeat 下限 1.0 → 比例 0.5 → x = 200 + 12 + 88 = 300
+        // 4/4 固定口径：beat 2 → 比例 0.5 → x = 12 + 88 = 100
+        assertEquals(100f, bar1[1].x, 1e-4f)
+        // 第二小节 beat 0.5 → 比例 0.125 → x = 200 + 12 + 22 = 234
         val bar2 = placed.first { it.barIndex == 1 }
-        assertEquals(300f, bar2.x, 1e-4f)
+        assertEquals(234f, bar2.x, 1e-4f)
     }
 
     @Test
