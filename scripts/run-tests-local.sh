@@ -34,6 +34,13 @@ for j in "${JARS[@]}"; do
   [ -n "$j" ] || { echo "[run-tests] 缺少运行时 jar：$1" >&2; exit 1; }
 done
 
+# AAR 依赖（如 alphaTab）的 classes.jar 从 gradle 缓存解出进 classpath（AAR 不能直接上 CP）
+AAT_AAR="$(find .gradle-home/caches/modules-2/files-2.1/net.alphatab -name 'alphaTab-*.aar' 2>/dev/null | sort | tail -n1)"
+if [ -n "$AAT_AAR" ]; then
+  unzip -p "$AAT_AAR" classes.jar > "$TMPD/alphatab-classes.jar"
+  JARS+=("$TMPD/alphatab-classes.jar")
+fi
+
 # 4) 测试类：参数优先，否则从源码树自动发现
 if [ $# -gt 0 ]; then
   TESTS=("$@")

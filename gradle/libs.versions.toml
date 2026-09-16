@@ -14,6 +14,7 @@ coroutines = "1.9.0"
 datastore = "1.1.1"
 junit = "4.13.2"
 room = "2.6.1"
+alphatab = "1.8.4"
 ksp = "2.1.0-1.0.29"
 
 [libraries]
@@ -45,6 +46,8 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+# Guitar Pro 导入（F205）：alphaTab 1.8.4，MPL-2.0（文件级 copyleft，未改动其源码仅作依赖引入，已单独评估）
+alphatab = { group = "net.alphatab", name = "alphaTab", version.ref = "alphatab" }
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }

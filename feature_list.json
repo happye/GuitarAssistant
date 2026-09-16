@@ -176,8 +176,8 @@
       "name": "Guitar Pro 导入",
       "description": "alphaTab 导入 .gp3~.gp8 → TabDocument（唯一谱面数据模型）",
       "priority": 24,
-      "status": "pending",
-      "passes": false,
+      "status": "done",
+      "passes": true,
       "test_criteria": "导入 3 个不同版本 GP 文件，弦/品/拍与源文件抽查一致"
     },
     {
