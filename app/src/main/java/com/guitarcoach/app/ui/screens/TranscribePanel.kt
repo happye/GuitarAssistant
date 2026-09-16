@@ -46,6 +46,7 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
     var status by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var bpmText by remember { mutableStateOf("120") }
+    var truncated by remember { mutableStateOf(0) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -70,14 +71,14 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                     }
                     if (midiNotes.isEmpty()) throw IllegalArgumentException("没有转写出音符——试试更干净的单音素材")
                     // 时长截断（前 2 分钟）：长曲先出主干；截断必须告知用户（局限如实标注，监督员 P2）
-                    val trimmed = midiNotes.filter { it.timeSec < 120 }
-                    val truncated = midiNotes.size - trimmed.size
-                    val placed = MidiTabConverter.convert(trimmed, bpm)
+                    val kept = midiNotes.filter { it.timeSec < 120 }
+                    truncated = midiNotes.size - kept.size
+                    val placed = MidiTabConverter.convert(kept, bpm)
                     MidiTabConverter.toTabDocument(placed, bpm = bpm, title = "扒谱 " + uri.lastPathSegment?.substringAfterLast('/')?.take(24).orEmpty())
                 }
                 onDocument(doc)
                 status = "转写完成：${doc.sections.sumOf { s -> s.bars.sumOf { b -> b.notes.size } }} 个音符已进谱面" +
-                    if (truncated > 0) "（仅取前 2 分钟主干，其余 ${truncated} 个音符未入谱）" else ""
+                    if (truncated > 0) "（仅取前 2 分钟主干，其余 $truncated 个音符未入谱）" else ""
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
