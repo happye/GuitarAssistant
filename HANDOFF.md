@@ -30,8 +30,8 @@ bash scripts/build.sh compileDebugKotlin   # 本地快速验证
 ## 四、当前状态快照（2026-09-16 交付点 · M1-M6 代码面全部落地）
 
 - **里程碑**：M0 ✅（v0.1.0）｜M1 代码面 7/7｜M2 代码面 9/9（F205/F206/F209 done）｜M3 代码面 3/3｜M4 代码面 3/4（F404 v1 诚实降级）｜M5 代码面 3/4（F504 决策暂不做）｜M6 基建完成（F602 阻塞）——**关闭条件全部=真机验收**
-- **特性计数**：38 项 —— done 10（F001-F005、F104、F107、F205、F206、F209，CI 绿）；代码完成待真机验收 ~19；F602 阻塞（basic-pitch 无官方 ONNX）；F504/F604 评估决策记录已落档（暂不做/不上线）
-- **Release**：tag v* → release.yml 自动测试+出 APK+挂 GitHub Releases；**v0.2.5 已发布**（GuitarCoach-v0.2.5-debug.apk 远程可装）
+- **特性计数**：38 项 —— done 10（F001-F005、F104、F107、F205、F206、F209，CI 绿）；2026-09-17 用户反馈五连修已落（签名/持久化/长音频/识谱准确性与观感，见 CHANGELOG v0.2.8/v0.2.9）；代码完成待真机验收 ~19；F602 阻塞（basic-pitch 无官方 ONNX）；F504/F604 评估决策记录已落档（暂不做/不上线）
+- **Release**：tag v* → release.yml 自动测试+出 APK+挂 GitHub Releases；**v0.2.9 在线**（签名统一版：仓库内 keystore/debug.keystore，任意来源 APK 可覆盖安装；versionCode=提交数/versionName=tag 号）。用户网络：代理 127.0.0.1:7890 间歇关闭，push 失败先试直连 `git -c "http.https://github.com.proxy=" push`，都挂就定时重试
 - **CI**：全绿；**本地单测** `bash scripts/run-tests-local.sh` 103 用例全绿；每特性收尾本地 assembleDebug 出 APK（AGENTS.md 交付纪律）
 - 进行中无未提交代码，工作区干净
 - 本段特性明细：M3 视觉教练（跟踪/警报/点评+TTS）、M4 跟练判定+曲线+互验、M5 曲库 Room v3+周复盘+音色向导、M6 扒谱基建（抽 PCM+弦品 DP）；F205 GP 导入（alphaTab 1.8.4 引入经目标确认）
