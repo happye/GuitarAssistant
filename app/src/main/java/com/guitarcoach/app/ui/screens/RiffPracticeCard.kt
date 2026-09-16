@@ -35,12 +35,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.guitarcoach.app.core.audio.RiffMatcher
+import com.guitarcoach.app.core.tab.midi
 import com.guitarcoach.app.core.audio.TunerEngine
+import com.guitarcoach.app.data.AppContainer
+import androidx.compose.runtime.collectAsState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/** 内置跟练素材（M4 v1）：名称 + BPM + 目标音（midi, 拍位）。 */
+/** 跟练素材：名称 + BPM + 目标音（midi, 拍位）。内置 preset 或曲库曲目动态生成。 */
 private data class RiffPreset(val name: String, val bpm: Int, val notes: List<RiffMatcher.TargetNote>)
 
 private val PRESETS = listOf(
@@ -61,14 +64,37 @@ private const val MIN_NOTE_MS = 200L // 同音保持 ≥200ms 才算一个音符
  * 同屏画音高曲线（无稳定音高的段 = 灰色，可能闷音/没按实）；错音以音频为准提示检查指法。
  */
 @Composable
-internal fun RiffPracticeCard() {
+internal fun RiffPracticeCard(container: AppContainer) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val engine = remember { TunerEngine(CoroutineScope(Dispatchers.Default)) }
     DisposableEffect(Unit) { onDispose { engine.stop() } }
     val reading by engine.reading.collectAsState()
 
-    var presetIndex by rememberSaveable { mutableIntStateOf(0) }
+    var presetIndex by rememberSaveable { mutableIntStateOf(0) } // -1 = 曲库曲目
+    val songs by container.songRepository.observeAll().collectAsState(initial = emptyList())
+    // 曲库动态素材：在学曲目 TabDocument → TargetNote（全局 bar+beat → 拍位，bpm 取曲目 tempo）
+    val songPresets = remember(songs) {
+        songs.filter { it.document != null && it.progress != com.guitarcoach.app.data.SongRepository.PROGRESS_SHELVED }
+            .take(10)
+            .map { entry ->
+                val doc = entry.document!!
+                val secPerBeat = 60.0 / doc.tempo
+                var bar = 0
+                val notes = mutableListOf<RiffMatcher.TargetNote>()
+                doc.sections.forEach { sec ->
+                    sec.bars.forEach { b ->
+                        b.notes.forEach { n ->
+                            notes += RiffMatcher.TargetNote(n.midi(), (bar * 4 + n.beat) * secPerBeat)
+                        }
+                        bar++
+                    }
+                }
+                RiffPreset("曲库 · ${entry.title}", doc.tempo, notes)
+            }
+    }
+    val allPresets = remember(PRESETS, songPresets) { PRESETS + songPresets }
+    val currentPreset = allPresets.getOrNull(presetIndex) ?: allPresets.first()
     var recording by remember { mutableStateOf(false) }
     var startAt by remember { mutableStateOf(0L) }
     val samples = remember { mutableStateListOf<Pair<Long, Int?>>() } // (墙钟ms, midi|null)
@@ -91,7 +117,7 @@ internal fun RiffPracticeCard() {
         collectJob = null
         engine.stop()
         recording = false
-        val preset = PRESETS[presetIndex]
+        val preset = allPresets.getOrNull(presetIndex) ?: allPresets.first()
         val detected = mutableListOf<RiffMatcher.DetectedNote>()
         var runMidi: Int? = null
         var runStart = 0L
@@ -127,13 +153,15 @@ internal fun RiffPracticeCard() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            Text(
+                "选择素材（点按切换）：" + allPresets.getOrNull(presetIndex)?.name.orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                PRESETS.forEachIndexed { i, preset ->
-                    AssistChip(
-                        onClick = { presetIndex = i; result = null },
-                        label = { Text(preset.name) },
-                    )
-                }
+                AssistChip(
+                    onClick = { presetIndex = (presetIndex + 1).mod(allPresets.size); result = null },
+                    label = { Text("切换素材 →") },
+                )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(

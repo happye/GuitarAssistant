@@ -171,7 +171,7 @@ fun PracticeScreen(container: AppContainer) {
 
         MetronomeCard()
         PracticeTimerCard(container.practiceRepository)
-        RiffPracticeCard()
+        RiffPracticeCard(container = container)
     }
 }
 
