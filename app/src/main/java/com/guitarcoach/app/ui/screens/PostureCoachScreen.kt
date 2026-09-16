@@ -223,6 +223,14 @@ internal fun PostureCoachScreen(container: AppContainer, onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        // F404 手位标定 v1 口径：单目判品物理不可靠（L005），未标定场景明确不显示参考品位——
+        // 按弦是否正确以音频为准（练习室·跟练判定，F403 视听互验）
+        Text(
+            "参考品位显示需要机位标定（后续版本提供）；当前以音频为准校验按弦，详见练习室·跟练判定。",
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
