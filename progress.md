@@ -37,6 +37,16 @@
 - Status: F201 代码完成待真机验收；M2 剩余：F202-F206（alphaTab 渲染/GP 导入/移调计算器/逐句讲解 F207-F209）
 - Next: F202 谱面渲染（alphaTab 决策点）或 F206 移调计算器（纯 JVM 快交付）
 
+## 2026-09-17 - Session: 8 小时迭代专项（M7 集百家之长）+ 三 bug 根修 + F602 转写引擎落地
+
+- 用户目标：8 小时不间断开发、自行找活、全网调研集百家之长；点名三 bug（谱面试听听不了/文本谱解析错/音符位置偏移）与"转写引擎都没有"
+- **F602 端侧转写引擎落地（最大项，阻塞解除）**：实证 basic-pitch 0.4.0 PyPI wheel 自带 nmp.tflite（0.2MB，Apache-2.0）→ onnxruntime 本机实测 440Hz→midi69 精确命中 + music/ 素材端到端 166 音符 → TranscriptionEngine（22050Hz 2s 窗）+ NoteDecoder 纯函数 → 扒谱全链路（选音频→转写→弦品 DP→自动 BPM→TabDocument 进工作台）
+- **三 bug 根修**：文本谱解析 v2.1（弦行判定收紧/拍位按段归零/x 标记跳过——监督员抓出首版拍位"声称已修未修"后真修，7 真实 UG 回归用例）；试听重写 STREAM+「▶ 播放整段」（ToneRenderer 序列渲染，stop 泄漏/UI 线程合成修复）；布局偏移以多模态视觉自检确认已修（PNG 生成+程序化断言基建）
+- **M7 新特性（F701-F709）**：和弦库 28 形状（数据 4 单测）/跟练星级连击/速度训练提示/调音器 7 调弦预设+音分表盘/节拍器细分+count-in/BPM 自动检测（5 单测）/AI 今日练习单/播放光标跟随+自动滚动/首页快捷导航/曲库曲目直通跟练
+- 调研落档：.learnings/feature-research-2026-09-17.md（8 组产品 40 功能点，Top8 排序+负清单）
+- 监督员全程抓实错：TunerMeter 角度错位 90°（调音功能性错误）、TonePlayer stop 泄漏、gitignore music/ 无锚定吞 core/music 三源文件（P0，CI 必炸）等全部修复
+- **流程教训（L019/L020）**：gitignore 锚定语义、`&&` 硬链（连续两次编译错误误推后立规矩）
+- 验证: 124/124 单测全绿；每批 APK；发版 v0.2.12-v0.2.19（GitHub Releases 全部挂包）
 ## 2026-09-17 - Session: 用户反馈五连修（签名/持久化/长音频/识谱观感与准确性）
 
 - 用户实测反馈（v0.2.7 APK）：①切界面丢状态 ②debug APK 签名不一致无法覆盖安装、版本不变 ③文档滞后 ④识谱不准+太丑（要求参考网上资源）⑤重要点要记忆；music/ 下两首测试 riff（Blur-Song 2、Led Zeppelin-Whole Lotta Love，后者 5:30 抽取报错）
