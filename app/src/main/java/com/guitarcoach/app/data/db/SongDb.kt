@@ -36,6 +36,9 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE id = :id")
     suspend fun getById(id: Long): SongEntity?
 
+    @Query("UPDATE songs SET title = :title, updatedAt = :now WHERE id = :id")
+    suspend fun rename(id: Long, title: String, now: Long)
+
     @Query("DELETE FROM songs WHERE id = :id")
     suspend fun delete(id: Long)
 }

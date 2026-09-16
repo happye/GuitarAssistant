@@ -1,6 +1,8 @@
 package com.guitarcoach.app.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -113,6 +115,7 @@ private fun SongLibraryDialog(
                 if (filtered.isEmpty()) {
                     Text("曲库还是空的——识别或导入一段谱后存进来", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
+                var renameTarget by remember { mutableStateOf<SongEntry?>(null) }
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -121,6 +124,7 @@ private fun SongLibraryDialog(
                 ) {
                     items(filtered, key = { it.id }) { entry ->
                         SongRow(
+                            onLongPress = { renameTarget = entry },
                             entry = entry,
                             dateFormat = dateFormat,
                             onLoad = {
@@ -147,11 +151,29 @@ private fun SongLibraryDialog(
                 message?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
+                renameTarget?.let { target ->
+                    var newName by remember { mutableStateOf(target.title) }
+                    AlertDialog(
+                        onDismissRequest = { renameTarget = null },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                scope.launch { container.songRepository.rename(target.id, newName) }
+                                renameTarget = null
+                            }) { Text("保存") }
+                        },
+                        dismissButton = { TextButton(onClick = { renameTarget = null }) { Text("取消") } },
+                        title = { Text("重命名") },
+                        text = {
+                            OutlinedTextField(value = newName, onValueChange = { newName = it }, singleLine = true)
+                        },
+                    )
+                }
             }
         },
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SongRow(
     entry: SongEntry,
@@ -159,11 +181,12 @@ private fun SongRow(
     onLoad: () -> Unit,
     onCycleProgress: () -> Unit,
     onDelete: () -> Unit,
+    onLongPress: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onLoad)
+            .combinedClickable(onClick = onLoad, onLongClick = onLongPress)
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),

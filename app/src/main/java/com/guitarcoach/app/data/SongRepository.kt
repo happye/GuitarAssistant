@@ -49,6 +49,11 @@ class SongRepository(private val dao: SongDao) {
         dao.update(song.copy(progress = progress, updatedAt = System.currentTimeMillis()))
     }
 
+    suspend fun rename(id: Long, title: String) {
+        if (title.isBlank()) return
+        dao.rename(id, title.trim(), System.currentTimeMillis())
+    }
+
     suspend fun delete(id: Long) = dao.delete(id)
 
     private fun SongEntity.toEntry(): SongEntry = SongEntry(

@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -163,6 +164,16 @@ fun TabStudioScreen(container: AppContainer) {
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = {
+                    pasteText = """
+                        e|--------------3---3--|
+                        B|-----------3-----3---|
+                        G|--------0----------0-|
+                        D|-----0---------------|
+                        A|--2------------------|
+                        E|---------------------|
+                    """.trimIndent()
+                }) { Text("填示例") }
                 Button(
                     onClick = {
                         document = null
