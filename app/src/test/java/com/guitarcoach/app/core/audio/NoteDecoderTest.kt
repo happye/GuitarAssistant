@@ -49,12 +49,4 @@ class NoteDecoderTest {
         assertTrue(events.all { it.timeSec == 0.0 })
     }
 
-    @Test
-    fun `选头用激活总量`() {
-        val sustained = Array(10) { FloatArray(88).also { it[48] = 0.9f } } // 持续激活
-        val sparse = Array(10) { f -> FloatArray(88).also { it[48] = if (f == 0) 0.9f else 0.05f } }
-        val picked = NoteDecoder.pickNoteHead(listOf(sustained to 88, sparse to 88))
-        assertEquals(sustained, picked)
-        assertEquals(0.9f, picked[5][48], 1e-6f)
-    }
 }

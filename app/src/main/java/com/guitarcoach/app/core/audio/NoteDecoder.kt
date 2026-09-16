@@ -53,18 +53,4 @@ object NoteDecoder {
         return out.sortedBy { it.timeSec }
     }
 
-    /** 三个输出头里选 note head：88 列的两个中激活总量大者（notes 持续激活 > onsets 稀疏）。 */
-    fun pickNoteHead(outputsWithShape: List<Pair<Array<FloatArray>, Int>>): Array<FloatArray> {
-        val candidates = outputsWithShape.filter { it.second == 88 }
-        require(candidates.isNotEmpty()) { "输出中没有 88 音高矩阵" }
-        return candidates.maxByOrNull { (_, _) -> 0f }!!.let { (m, _) -> m }.let { m ->
-            // 激活总量比较
-            val best = candidates.maxByOrNull { (matrix, _) ->
-                var sum = 0f
-                for (row in matrix) for (v in row) sum += v
-                sum
-            }!!
-            best.first
-        }
-    }
 }
