@@ -196,11 +196,22 @@ fun TabStudioScreen(container: AppContainer) {
             }
         }
 
-        // 展示（拍谱结果优先，其次文本谱/GP 结果）；F203 编辑回写；F202 谱面渲染与点按试听
+        // 展示（拍谱结果优先，其次文本谱/GP 结果）；F203 编辑回写；F202 谱面渲染与点按试听；F502 曲库
         (extracted?.document ?: document)?.let { doc ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 FilterChip(selected = !showRender, onClick = { showRender = false }, label = { Text("列表") })
                 FilterChip(selected = showRender, onClick = { showRender = true }, label = { Text("谱面（点按试听）") })
+                SongLibrarySection(
+                    container = container,
+                    currentDoc = doc,
+                    onLoad = { loaded ->
+                        extracted = null
+                        imageBase64 = null
+                        explainText = null
+                        document = loaded
+                        showRender = false
+                    },
+                )
             }
             if (showRender) {
                 TabRenderPanel(doc, modifier = Modifier.weight(1f))

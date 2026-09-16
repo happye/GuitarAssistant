@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -18,7 +19,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +53,63 @@ fun ProfileScreen(container: AppContainer) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        // F501 AI 周复盘：一周记录 → 深思链流式复盘（只引用真实数据）
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("AI 周复盘（实验）", style = MaterialTheme.typography.titleSmall)
+                val stats = remember(records) {
+                    com.guitarcoach.app.core.coach.WeeklyReview.summarize(
+                        records.map { com.guitarcoach.app.core.coach.WeeklyReview.Record(it.startedAt, it.durationSeconds, it.content) },
+                        nowMs = System.currentTimeMillis(),
+                    )
+                }
+                Text(
+                    "${stats.daysPracticed} 天 · ${stats.sessions} 次 · ${stats.totalMinutes} 分钟",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                var reviewText by remember { mutableStateOf<String?>(null) }
+                var reviewing by remember { mutableStateOf(false) }
+                var reviewError by remember { mutableStateOf<String?>(null) }
+                val scope = rememberCoroutineScope()
+                Button(
+                    enabled = !reviewing,
+                    onClick = {
+                        reviewing = true
+                        reviewError = null
+                        reviewText = ""
+                        scope.launch {
+                            try {
+                                container.coach.weeklyReview(stats.toPromptText()).collect { delta ->
+                                    reviewText = (reviewText ?: "") + delta
+                                }
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                reviewError = e.message ?: "生成失败，请重试"
+                            } finally {
+                                reviewing = false
+                            }
+                        }
+                    },
+                ) { Text(if (reviewing) "复盘生成中…" else "生成本周复盘") }
+                reviewText?.let {
+                    Text(
+                        it.ifBlank { "…" },
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                reviewError?.let {
+                    Text("❌ $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
 
         if (records.isEmpty()) {
             Card(modifier = Modifier.fillMaxWidth()) {

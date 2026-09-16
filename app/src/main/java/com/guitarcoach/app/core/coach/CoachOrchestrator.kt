@@ -64,5 +64,27 @@ class CoachOrchestrator(private val router: ModelRouter) {
         return CoachFeedback.parse(raw)
     }
 
+    /** AI 周复盘（F501）：一周练习统计 → 深思链流式复盘。 */
+    fun weeklyReview(stats: String): Flow<String> =
+        LlmFallback.streamWithFallback(chain = { router.deepText() }) {
+            ChatSpec(
+                system = CoachPrompts.WEEKLY_REVIEW,
+                user = stats,
+                maxTokens = 800,
+                temperature = 0.6,
+            )
+        }
+
+    /** 音色向导（F503）：目标音色描述 → 深思链流式参数推荐。 */
+    fun toneWizard(request: String): Flow<String> =
+        LlmFallback.streamWithFallback(chain = { router.deepText() }) {
+            ChatSpec(
+                system = CoachPrompts.TONE_WIZARD,
+                user = request,
+                maxTokens = 900,
+                temperature = 0.7,
+            )
+        }
+
     // ---------- 内部：模型链 + 备份降级（原语在 core/llm/LlmFallback，供识谱等管线共用） ----------
 }

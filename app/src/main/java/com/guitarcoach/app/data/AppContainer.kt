@@ -47,6 +47,9 @@ class AppContainer(context: Context) {
     // 逐句讲解本地缓存（F208）：离线回看
     val phraseCache by lazy { com.guitarcoach.app.data.PhraseCache(appContext.filesDir) }
 
+    // 曲库（F502）：TabDocument 持久化 + 进度标记
+    val songRepository by lazy { SongRepository(database.songDao()) }
+
     fun shutdown() {
         appScope.cancel()
     }
