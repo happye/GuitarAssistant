@@ -36,9 +36,16 @@ jobs:
       - name: 重命名 APK
         run: cp app/build/outputs/apk/debug/app-debug.apk "GuitarCoach-${GITHUB_REF_NAME}-debug.apk"
 
+      # 用 runner 自带 gh 建 Release（避免第三方 action 解析失败的坑）
       - name: 发布到 GitHub Releases
-        uses: softprops/action-ghrelease@v2
-        with:
-          files: GuitarCoach-*-debug.apk
-          generate_release_notes: true
-          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARGS=""
+          case "$GITHUB_REF_NAME" in
+            *-*) ARGS="--prerelease" ;;
+          esac
+          gh release create "$GITHUB_REF_NAME" \
+            "GuitarCoach-${GITHUB_REF_NAME}-debug.apk#安装包（debug 签名，直接安装）" \
+            --title "GuitarCoach ${GITHUB_REF_NAME}" \
+            --generate-notes $ARGS
