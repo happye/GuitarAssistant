@@ -40,6 +40,8 @@ internal fun MetronomeCard() {
     val engine = remember { MetronomeEngine(CoroutineScope(Dispatchers.Default)) }
     var bpm by rememberSaveable { mutableIntStateOf(100) }
     var beats by rememberSaveable { mutableIntStateOf(4) }
+    var subdivide by rememberSaveable { mutableIntStateOf(1) } // F705 细分
+    var countIn by rememberSaveable { mutableStateOf(false) } // F705 预备拍
     var running by remember { mutableStateOf(false) }
     DisposableEffect(Unit) { onDispose { engine.stop() } }
 
@@ -58,7 +60,7 @@ internal fun MetronomeCard() {
                 value = bpm.toFloat(),
                 onValueChange = {
                     bpm = it.toInt()
-                    engine.update(bpm, beats)
+                    engine.update(bpm, beats, subdivision, countIn = countIn)
                 },
                 valueRange = 40f..240f,
             )
@@ -68,7 +70,7 @@ internal fun MetronomeCard() {
                         selected = beats == b,
                         onClick = {
                             beats = b
-                            engine.update(bpm, b)
+                            engine.update(bpm, b, subdivision, countIn = countIn)
                         },
                         label = { Text("$b 拍") },
                     )
@@ -80,7 +82,7 @@ internal fun MetronomeCard() {
                         engine.stop()
                         running = false
                     } else {
-                        engine.update(bpm, beats)
+                        engine.update(bpm, beats, subdivision, countIn = countIn)
                         engine.start()
                         running = true
                     }

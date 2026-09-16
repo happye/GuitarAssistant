@@ -29,13 +29,20 @@ class MetronomeEngine(private val scope: CoroutineScope) {
     @Volatile private var bpm: Int = 100
     @Volatile private var beatsPerBar: Int = 4
     @Volatile private var beatIndex: Long = 0
+    @Volatile private var subdivision: Int = 1 // F705：每拍细分 1/2/3/4
+    @Volatile private var accentPattern: String = "x" // F705：重音 pattern（按小节拍循环，x=重音）
+    @Volatile private var countIn: Boolean = false // F705：预备拍（1 小节高音计数）
 
     val isRunning: Boolean get() = job?.isActive == true
 
-    fun update(bpm: Int, beatsPerBar: Int) {
+    fun update(bpm: Int, beatsPerBar: Int, subdivision: Int = this.subdivision, accentPattern: String? = null, countIn: Boolean = this.countIn) {
         require(bpm in 40..240) { "BPM 必须在 40-240" }
+        require(subdivision in 1..4) { "细分 1-4" }
         this.bpm = bpm
         this.beatsPerBar = beatsPerBar
+        this.subdivision = subdivision
+        accentPattern?.let { if (it.isNotBlank()) this.accentPattern = it }
+        this.countIn = countIn
     }
 
     fun start() {
@@ -65,11 +72,28 @@ class MetronomeEngine(private val scope: CoroutineScope) {
         job = scope.launch(Dispatchers.IO) {
             try {
                 track.play()
+                if (countIn) {
+                    // F705 预备拍：1 小节 1500Hz 高音计数，与正拍无缝衔接（同 track 顺序写）
+                    val beatSamples = sampleRate * 60 / bpm
+                    repeat(beatsPerBar) {
+                        val click = generateClick(sampleRate, beatSamples, accent = true, freq = 1500.0, gain = 0.5)
+                        track.write(click, 0, click.size, AudioTrack.WRITE_BLOCKING)
+                    }
+                }
                 while (isActive) {
                     val beatSamples = sampleRate * 60 / bpm
-                    val accent = beatIndex % beatsPerBar == 0L
-                    val click = generateClick(sampleRate, beatSamples, accent)
-                    track.write(click, 0, click.size, AudioTrack.WRITE_BLOCKING)
+                    val sub = subdivision.coerceAtLeast(1)
+                    val pattern = accentPattern
+                    val accent = pattern[if (pattern.length == 1) 0 else (beatIndex % pattern.length).toInt()] == 'x'
+                    for (s in 0 until sub) {
+                        val subSamples = beatSamples / sub
+                        val click = if (s == 0) {
+                            generateClick(sampleRate, subSamples, accent)
+                        } else {
+                            generateClick(sampleRate, subSamples, accent = false, gain = 0.35) // 弱子拍
+                        }
+                        track.write(click, 0, click.size, AudioTrack.WRITE_BLOCKING)
+                    }
                     beatIndex++
                 }
             } catch (e: Exception) {
@@ -87,13 +111,12 @@ class MetronomeEngine(private val scope: CoroutineScope) {
         job = null
     }
 
-    private fun generateClick(sampleRate: Int, beatSamples: Int, accent: Boolean): ShortArray {
+    private fun generateClick(sampleRate: Int, beatSamples: Int, accent: Boolean, freq: Double = if (accent) 1200.0 else 800.0, gain: Double = 0.8): ShortArray {
         val out = ShortArray(beatSamples)
         val clickLen = min(beatSamples, sampleRate * 60 / 1000) // 60ms 点击
-        val freq = if (accent) 1200.0 else 800.0
         for (i in 0 until clickLen) {
             val envelope = exp(-i.toDouble() / (sampleRate * 0.008)) // ~8ms 衰减
-            out[i] = (sin(2 * PI * freq * i / sampleRate) * envelope * Short.MAX_VALUE * 0.8).toInt().toShort()
+            out[i] = (sin(2 * PI * freq * i / sampleRate) * envelope * Short.MAX_VALUE * gain).toInt().toShort()
         }
         return out
     }

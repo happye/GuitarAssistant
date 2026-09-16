@@ -394,6 +394,14 @@
       "status": "done",
       "passes": true,
       "test_criteria": "纯展示提示，BPM 计算 clamp 240；逻辑随 F401 覆盖"
+    },
+    {
+      "id": "F704",
+      "milestone": "M7",
+      "title": "调音器调弦预设：7 种常用调弦（E标准/Drop D/Eb/D/Drop C/Open G/DADGAD）运行中即时切换 + 动态认弦",
+      "status": "done",
+      "passes": true,
+      "test_criteria": "Tunings 数据 7 项各 6 值；nearestString 换 tuning 即刻生效（引擎逻辑，真机验证认弦体验）"
     }
   ]
 }
