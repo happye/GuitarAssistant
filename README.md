@@ -6,17 +6,11 @@ AI 底座（2026-09-15 真实 key 实测）：**DeepSeek 全家桶主力**（`de
 
 📖 完整开发方案见 [docs/开发方案.md](docs/开发方案.md)（痛点调研、竞品分析、可行性论证、架构设计、里程碑路线图）。
 
-## 当前状态：M0 骨架就绪
+## 当前状态（2026-09-16）
 
-| 已实现 | 说明 |
-|---|---|
-| LLM 网关 | OpenAI 兼容流式客户端 + 视觉/文本任务路由，设置页改 Key 即生效 |
-| 教练编排器 | 拍谱讲解 / 手势点评（结构化 JSON）/ 乐理问答 三条链路 |
-| 谱面引擎 | 统一数据模型 TabDocument + 文本六线谱解析器 + LLM 识谱管线 |
-| 调音器 | 麦克风采样 → MPM 音高检测 → 音分偏差提示 |
-| 视觉底座 | MediaPipe 手部 21 关键点封装（等 hand_landmarker.task 模型文件） |
-
-未实现（按里程碑推进）：谱面渲染与播放、相机实时界面、语音、练习记录 —— 见方案文档 §9。
+- **M0 骨架 ✅ 完成**（v0.1.0）；**M1 乐理与识谱基础：代码面 7/7 完成**；**M2 拍谱识谱与逐句讲解：代码面 8/9 完成**——均待真机验收（小米 14）
+- 已实现：LLM 网关（流式+视觉+路由+降级）· 教练编排 · 谱面引擎（TabDocument 唯一模型）· 调音器（MPM）· 乐理聊天/概念卡片/指板可视化/移调计算器 · 文本谱解析 · 拍谱识谱 + 结构化讲解 + 逐句大白话讲解（覆盖审计）· 谱面渲染与点按试听 · 自动指法 DP · 编辑修正 · 节拍器 · 练习记录（Room）· 多会话管理
+- 未实现（按里程碑推进）：Guitar Pro 导入（待确认引入 alphaTab）、相机实时教练（M3）、跟练音频反馈（M4）——见方案文档 §9
 
 ## 环境要求
 
@@ -28,34 +22,33 @@ AI 底座（2026-09-15 真实 key 实测）：**DeepSeek 全家桶主力**（`de
 ## 构建运行
 
 ```bash
-bash scripts/build.sh        # assembleDebug（自动用项目内 JDK/Gradle 与本地缓存目录）
-bash scripts/test-api.sh     # 两个模型接口的连通冒烟测试
+bash scripts/build.sh              # assembleDebug（自动用项目内 JDK/Gradle 与本地缓存目录）
+bash scripts/run-tests-local.sh    # 本地 JVM 单测（73 个；L012 绕法已产品化，详见脚本头注释）
+bash scripts/test-api.sh           # 两个模型接口的连通冒烟测试
 ```
 
 产物在 `app/build/outputs/apk/debug/app-debug.apk`。
 
-> ⚠️ 单元测试本地跑不了（中文路径 + JDK 原生层编码限制，见 `.learnings/LEARNINGS.md` L012）——**测试与 APK 构建以 GitHub Actions 为准**（push 自动触发，Actions 页可下载 APK）；本地用 `bash scripts/build.sh assembleDebug` / `compileDebugKotlin` 验证。
+> ⚠️ Gradle 的 `test` 任务本地跑不了（中文路径 + JDK 原生层编码限制，见 `.learnings/LEARNINGS.md` L012/L013）——本地单测走上面的 `run-tests-local.sh`；正式验证与 APK artifact 以 GitHub Actions 为准（push 自动触发）。
 
 ## 首次启动配置
 
 1. 打开 App → 首页「模型设置」→ 填入火山方舟与 DeepSeek 的 API Key（只存本机 DataStore）
 2. 点「测试连通」验证两条链路
-3. （M3 之前需要）下载手部关键点模型放入 `app/src/main/assets/`：
-   ```
-   https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
-   ```
+3. 手部关键点模型（`app/src/main/assets/hand_landmarker.task`）**已内置**，无需下载
 
 ## 目录结构
 
 ```
 app/src/main/java/com/guitarcoach/app/
 ├── MainActivity.kt            # 入口 + 底部导航（首页/练习室/识谱/乐理/我的）
-├── ui/                        # Compose 界面与主题
+├── ui/                        # Compose 界面与主题（聊天/识谱工作台/乐理工具/练习室）
 ├── core/
-│   ├── llm/                   # LLM 网关：ChatModels / OpenAiCompatClient / ModelRouter
-│   ├── coach/                 # 教练编排：提示词 / 反馈模型 / CoachOrchestrator
-│   ├── tab/                   # 谱面：TabDocument / TextTabParser / LlmTabExtractor
+│   ├── llm/                   # LLM 网关：ChatModels / OpenAiCompatClient / ModelRouter / LlmFallback
+│   ├── coach/                 # 教练编排：CoachPrompts / CoachOrchestrator / PhraseCoach（逐句讲解）
+│   ├── tab/                   # 谱面：TabDocument / TextTabParser / LlmTabExtractor / 分段与指法与版面
+│   ├── music/                 # 中立纯乐理：移调换算（F206）/ midiToFreq
 │   ├── vision/                # 视觉：HandLandmarkerHelper / FrameCodec
-│   └── audio/                 # 音频：PitchDetector(MPM) / TunerEngine
-└── data/                      # AppContainer（手工依赖）+ SettingsStore（DataStore）
+│   └── audio/                 # 音频：PitchDetector(MPM) / MetronomeEngine / TonePlayer / TtsController
+└── data/                      # AppContainer（手工依赖）+ SettingsStore + Room（对话/练习）+ PhraseCache
 ```

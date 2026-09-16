@@ -6,32 +6,35 @@
 ## 1. 分层结构（与实际包一一对应）
 
 ```
-UI      → ui/ + MainActivity         （Jetpack Compose 五 Tab，M0 已建）
-Data    → data/                      （AppContainer 手工 DI、SettingsStore/DataStore；M1 加 Room）
+UI      → ui/ + MainActivity         （Jetpack Compose 五 Tab）
+Data    → data/                      （AppContainer 手工 DI、SettingsStore/DataStore、Room v2：对话+练习记录+讲解缓存文件）
 Coach   → core/coach/                （编排：感知 → 模型 → 输出；提示词唯一归属）
 LLM     → core/llm/                  （网关：ChatSpec → ModelRouter → OpenAiCompatClient）
+Music   → core/music/                （中立纯乐理：移调计算 / midiToFreq；零依赖，供 UI/data/core 各层共用）
 Percep  → core/tab/ core/vision/ core/audio/（谱面 / 视觉 / 音频，端侧为主）
 ```
 
-依赖只允许自上而下；`Percep` 内部互不依赖（tab 依赖 llm 是唯一例外，见下）。
+依赖只允许自上而下；`Percep` 内部互不依赖（tab 依赖 llm 是唯一例外，见下）；`music` 不依赖任何本项目包。
 
 ## 2. 依赖矩阵（A 行可以依赖 B 列 = ✅）
 
-| from \ to | ui | data | coach | llm | tab | vision | audio |
-|---|---|---|---|---|---|---|---|
-| ui | — | ✅ | ✅(输出模型) | ❌ | ✅(TabDocument) | ❌ | ❌(引擎经 data) |
-| data | ❌ | — | ✅ | ✅ | ✅ | ✅ | ✅ |
-| coach | ❌ | ❌ | — | ✅ | ✅ | ❌ | ❌ |
-| llm | ❌ | ❌ | ❌ | — | ❌ | ❌ | ❌ |
-| tab | ❌ | ❌ | ❌ | ✅ | — | ❌ | ❌ |
-| vision | ❌ | ❌ | ❌ | ❌ | ❌ | — | ❌ |
-| audio | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | — |
+| from \ to | ui | data | coach | llm | tab | vision | audio | music |
+|---|---|---|---|---|---|---|---|---|
+| ui | — | ✅ | ✅(输出模型) | ❌ | ✅(TabDocument) | ❌ | ❌(引擎经 data) | ✅ |
+| data | ❌ | — | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| coach | ❌ | ❌ | — | ✅ | ✅ | ❌ | ❌ | ✅ |
+| llm | ❌ | ❌ | ❌ | — | ❌ | ❌ | ❌ | ❌ |
+| tab | ❌ | ❌ | ❌ | ✅ | — | ❌ | ❌ | ✅ |
+| vision | ❌ | ❌ | ❌ | ❌ | ❌ | — | ❌ | ✅ |
+| audio | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | — | ✅ |
+| music | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | — |
 
 补充规则：
 
-- UI 对 coach 只依赖其**输出模型**（`CoachFeedback`、`Flow<String>`）；对 tab 只依赖 `TabDocument` 及纯函数；引擎类（TunerEngine、HandLandmarkerHelper、LlmClient）一律经 `AppContainer` 注入/获取
+- UI 对 coach 只依赖其**输出模型**（`CoachFeedback`、`Flow<String>`、`PhraseCoach.Report`）；对 tab 只依赖 `TabDocument` 及纯函数；引擎类（TunerEngine、HandLandmarkerHelper、LlmClient）一律经 `AppContainer` 注入/获取
 - `core/tab → core/llm` 是既有事实（`LlmTabExtractor` 用 LlmClient 做识谱）：允许，但 llm 侧永远不得反向感知 tab
-- `vision`、`audio` 保持纯端侧（MediaPipe / DSP），不得引入任何 LLM 调用——视听互验（M4）在 coach 或新的编排点组合两者，而不是让它们互相依赖
+- `vision`、`audio` 保持纯端侧（MediaPipe / DSP / AudioTrack / TTS），不得引入任何 LLM 调用——视听互验（M4）在 coach 或新的编排点组合两者，而不是让它们互相依赖
+- **共享纯乐理函数进 `core/music`**（如 `midiToFreq`、移调换算），禁止把 `core/tab` 当共享函数库——audio→tab 的依赖违规（2026-09-16 监督员抓到并修复）就是这么来的
 - 所有跨层异步输出用 `Flow` / `suspend`；回调接口不跨层
 
 ## 3. 数据模型不变量
@@ -55,7 +58,8 @@ Percep  → core/tab/ core/vision/ core/audio/（谱面 / 视觉 / 音频，端�
 
 ## 6. 扩展指引（不改不变量的前提下）
 
-- 新 AI 功能：CoachPrompts 加提示词 → CoachOrchestrator 加链路（沿用 streamWithFallback/completeWithFallback）→ ui 接 Flow
+- 新 AI 功能：CoachPrompts 加提示词 → CoachOrchestrator/PhraseCoach 加链路（沿用 streamWithFallback/completeWithFallback）→ ui 接 Flow
 - 新谱源：实现"源 → TabDocument"转换器 + 合法性过滤；讲解/渲染零改动
 - 新感知能力（M4 技巧检测等）：进 `core/audio` 或 `core/vision`，保持纯端侧；需要模型参与时经 coach 编排
+- 共享纯乐理/换算函数：进 `core/music`（中立包，零依赖），不进 tab 也不进 audio
 - 数据持久化（M1 Room）：新表进 `data/`，UI 与 core 不直接持 DAO，经容器暴露的 repository 访问

@@ -1,15 +1,17 @@
 # 测试指南
 
 > 门禁要求（AGENTS.md 工程纪律 1/3）：修 bug 先立回归测试；验证靠"跑"不靠"读"。
-> 现状：M0 骨架尚无 test/androidTest 源集（tech-debt DEBT-001），M1 首个 sprint 补齐。
+> 现状（2026-09-16）：JVM 单测 73 个全绿（TextTabParser / TransposeCalculator / PhraseSegmenter / CoverageAuditor / PhraseExplainCodec / PhraseCoach 管线 mock / FingeringSolver / TabLayout / TabDocumentEdit / TabCompact / PhraseCache / PhraseSpeech），DEBT-001 已偿还。
 
 ## 测试分层
 
 | 层 | 位置 | 范围 | 运行 |
 |---|---|---|---|
-| JVM 单元测试 | `app/src/test/` | 纯逻辑：TextTabParser、TabDocument 校验与 midi()、LlmTabExtractor 的 JSON 过滤、CoachFeedback.parse、移调计算（F206）、MPM 对合成正弦波的音高检测 | `./scripts/build.sh test` |
+| JVM 单元测试 | `app/src/test/` | 纯逻辑：谱面解析与校验、移调/指法/版面计算、讲解管线（mock LlmClient）、缓存往返 | `bash scripts/run-tests-local.sh [测试类...]`（缺省全量）；CI push 自动跑 |
 | Compose UI 测试 | `app/src/androidTest/` | 关键交互：Tab 导航、识谱结果编辑（F203）、聊天页历史渲染 | `./scripts/build.sh connectedDebugAndroidTest` |
 | 真机冒烟 | adb | 相机/音频/模型链路等无法单测的端到端路径 | 见下方"真机验证" |
+
+> ⚠️ Gradle 的 `test` 任务本地跑不了（L012：中文路径 + JDK 原生层 GBK 读 @argfile）——本地单测用 **run-tests-local.sh**（产物拷 ASCII 目录跑 JUnitCore，L013：main/test 必须成对刷新，脚本已内置）；正式口径以 GitHub Actions 为准。
 
 ## 编写规则
 
@@ -35,5 +37,5 @@ adb logcat -s GuitarCoach                      # 运行日志（结构化 tag）
 
 ## 提交门槛
 
-- `./scripts/build.sh test` 全绿才允许 commit（含被改文件的编译）
+- 本地 `bash scripts/run-tests-local.sh` 全绿才允许 commit（每笔功能改动收尾还要本地 `assembleDebug` 出 APK 并报告路径，见 AGENTS.md「交付」）；正式验证以 CI 为准
 - 新功能无测试 = 未完成；跑不了的验证明说"没跑什么、为什么"
