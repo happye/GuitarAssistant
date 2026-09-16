@@ -75,6 +75,17 @@ class CoachOrchestrator(private val router: ModelRouter) {
             )
         }
 
+    /** AI 今日练习单（F707）：一周统计+曲库清单 → 深思链流式安排。 */
+    fun practicePlan(stats: String): Flow<String> =
+        LlmFallback.streamWithFallback(chain = { router.deepText() }) {
+            ChatSpec(
+                system = CoachPrompts.PRACTICE_PLAN,
+                user = stats,
+                maxTokens = 600,
+                temperature = 0.6,
+            )
+        }
+
     /** 音色向导（F503）：目标音色描述 → 深思链流式参数推荐。 */
     fun toneWizard(request: String): Flow<String> =
         LlmFallback.streamWithFallback(chain = { router.deepText() }) {

@@ -50,7 +50,7 @@ object TempoDetector {
         for (lag in minLag..maxLag) {
             var sum = 0.0
             for (f in 1 until frames - lag) sum += onset[f] * onset[f + lag]
-            // 稍偏置更快 BPM（音乐主拍感知先验）
+            // 稍偏置更慢 BPM（lag 大 = 周期长；慢侧更接近音乐主拍的感知先验）
             val score = sum * (1.0 + 0.08 * (lag - minLag) / (maxLag - minLag))
             if (score > bestScore) {
                 bestScore = score

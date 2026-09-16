@@ -21,6 +21,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.first
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -100,6 +103,61 @@ fun HomeScreen(container: AppContainer) {
                 baseUrl = s.dsFast.baseUrl,
                 configured = s.dsFast.isConfigured,
             )
+        }
+
+        // F707 AI 今日练习单（集百家之长 Top7：LLM+Room 组合）
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("AI 今日练习单（实验）", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "结合最近一周练习记录与曲库在学曲目，安排今天 2~4 个练习项。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                var planText by rememberSaveable { mutableStateOf<String?>(null) }
+                var planning by remember { mutableStateOf(false) }
+                var planError by rememberSaveable { mutableStateOf<String?>(null) }
+                val planScope = rememberCoroutineScope()
+                Button(
+                    enabled = !planning,
+                    onClick = {
+                        planning = true
+                        planError = null
+                        planText = ""
+                        planScope.launch {
+                            try {
+                                val stats = withContext(Dispatchers.IO) {
+                                    val recent = container.practiceRepository.observeRecords().first()
+                                    val songs = container.songRepository.observeAll().first()
+                                        .filter { it.progress != com.guitarcoach.app.data.SongRepository.PROGRESS_SHELVED }
+                                        .take(10)
+                                        .joinToString("、") { "${it.title}（${com.guitarcoach.app.data.SongRepository.PROGRESS_LABELS[it.progress]}）" }
+                                    com.guitarcoach.app.core.coach.WeeklyReview.summarize(
+                                        recent.map { com.guitarcoach.app.core.coach.WeeklyReview.Record(it.startedAt, it.durationSeconds, it.content) },
+                                        nowMs = System.currentTimeMillis(),
+                                    ).toPromptText() + if (songs.isBlank()) "" else "\n曲库在学：$songs"
+                                }
+                                container.coach.practicePlan(stats).collect { delta ->
+                                    planText = (planText ?: "") + delta
+                                }
+                            } catch (e: kotlinx.coroutines.CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                planError = e.message ?: "生成失败，请重试"
+                            } finally {
+                                planning = false
+                            }
+                        }
+                    },
+                ) { Text(if (planning) "安排中…" else "生成今日练习单") }
+                planText?.let {
+                    Text(it.ifBlank { "…" }, style = MaterialTheme.typography.bodyMedium)
+                }
+                planError?.let { Text("❌ $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
+            }
         }
 
         ElevatedCard(modifier = Modifier.fillMaxWidth()) {

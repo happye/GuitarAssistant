@@ -410,6 +410,14 @@
       "status": "done",
       "passes": true,
       "test_criteria": "引擎生成逻辑（子拍弱音/count-in 高音/pattern 循环）随 UI 实测；AudioTrack 时基不变"
+    },
+    {
+      "id": "F706",
+      "milestone": "M7",
+      "title": "BPM 自动检测：onset 自相关 + 八度折叠（70-180），扒谱留空即自动检测",
+      "status": "done",
+      "passes": true,
+      "test_criteria": "合成节拍 120/90/160BPM 检出 ±2；44100 重采样口径；过短/静音返回 null（TempoDetectorTest 5 用例）"
     }
   ]
 }
