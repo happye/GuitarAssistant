@@ -20,17 +20,17 @@
 
 ```bash
 bash scripts/build.sh assembleDebug        # 构建（项目内 toolchain：JDK21+Gradle8.13，勿装全局）
-bash scripts/build.sh test                 # 本地会失败！见下
+bash scripts/run-tests-local.sh            # 本地单测（L012 绕法已产品化；103 用例）
 bash scripts/build.sh compileDebugKotlin   # 本地快速验证
 ```
-- **L012（.learnings）**：中文项目路径 + JDK 原生层 GBK 读 @argfile → 本地 Gradle 单测不可行（JDK17/21 都如此）。**单测以 GitHub Actions 为准**（push 即触发，CI 绿 = 验证完成；Actions 页可下载 APK artifact）
-- 本地快速跑单测的绕法：拷编译产物+依赖 jar 到 ASCII 临时目录手工跑 JUnitCore（详见 L012 防复发栏，未产品化）
+- **L012/L013（.learnings）**：中文项目路径 + JDK 原生层 GBK 读 @argfile → Gradle 的 test 任务本地不可行；本地单测走 run-tests-local.sh（ASCII 临时目录 JUnitCore，main/test 成对刷新）。正式口径以 GitHub Actions 为准
+- **每笔功能改动收尾必须本地 assembleDebug 出 APK 并报告路径**（AGENTS.md 交付纪律，用户硬性要求）
 - 本机 Android SDK 36 已装（local.properties 已配 sdk.dir）；WSL 无关；Windows GBK 控制台乱码属正常
 
 ## 四、当前状态快照（2026-09-16 交付点 · M1-M6 代码面全部落地）
 
 - **里程碑**：M0 ✅（v0.1.0）｜M1 代码面 7/7｜M2 代码面 9/9（F205/F206/F209 done）｜M3 代码面 3/3｜M4 代码面 3/4（F404 v1 诚实降级）｜M5 代码面 3/4（F504 决策暂不做）｜M6 基建完成（F602 阻塞）——**关闭条件全部=真机验收**
-- **特性计数**：38 项 —— done 12（F001-F005、F104、F107、F205、F206、F209 等，CI 绿）；代码完成待真机验收 ~19；F602 阻塞（basic-pitch 无官方 ONNX）；F504/F604 评估决策记录已落档（暂不做/不上线）
+- **特性计数**：38 项 —— done 10（F001-F005、F104、F107、F205、F206、F209，CI 绿）；代码完成待真机验收 ~19；F602 阻塞（basic-pitch 无官方 ONNX）；F504/F604 评估决策记录已落档（暂不做/不上线）
 - **Release**：tag v* → release.yml 自动测试+出 APK+挂 GitHub Releases；**v0.2.5 已发布**（GuitarCoach-v0.2.5-debug.apk 远程可装）
 - **CI**：全绿；**本地单测** `bash scripts/run-tests-local.sh` 103 用例全绿；每特性收尾本地 assembleDebug 出 APK（AGENTS.md 交付纪律）
 - 进行中无未提交代码，工作区干净
@@ -65,5 +65,7 @@ bash scripts/build.sh compileDebugKotlin   # 本地快速验证
 | CHANGELOG.md | 版本留痕（大版本详细、小版本一行，规则见文件头） |
 | progress.md | 会话交接日志（每会话必更） |
 | docs/模型API接入手册.md | 实测接入参数/curl/坑点 |
-| .learnings/LEARNINGS.md | L001-L012 教训（L010/L011/L012 是代码级契约） |
+| .learnings/LEARNINGS.md | L001-L013 教训（L010/L011/L012/L013 是代码级契约） |
 | docs/agents/ | Planner/Generator/Evaluator 协议 |
+| docs/exec-plans/f504-realtime-eval.md / f604-cloud-eval.md | F504/F604 评估决策记录 |
+| scripts/run-tests-local.sh | 本地单测一键入口（L012/L013 绕法产品化） |
