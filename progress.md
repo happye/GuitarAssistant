@@ -37,7 +37,15 @@
 - Status: F201 代码完成待真机验收；M2 剩余：F202-F206（alphaTab 渲染/GP 导入/移调计算器/逐句讲解 F207-F209）
 - Next: F202 谱面渲染（alphaTab 决策点）或 F206 移调计算器（纯 JVM 快交付）
 
-## 2026-09-16 - Session: M2 代码面收口（F202-F209 全部落地）+ F206 done + M3 前置
+## 2026-09-16 - Session: M3-M6 代码面全部落地 + Release 机制上线（目标驱动长会话·第二段）
+
+- Completed: 用户目标"把 M1-M6 所有能做的任务都做完"——**M3 视觉教练**（F301 LiveHandLandmarker LIVE_STREAM+GPU/骨架叠加、F302 PostureRules 折腕近似/塌指/拇指/出框 7 单测、F303 关键帧点评+TTS）；**M4 音频反馈**（F401 RiffMatcher 对齐判定、F402 音高曲线+闷音灰段、F403 以音频为准提示、F404 未标定不显示的诚实口径）；**M5**（F501 WeeklyReview+周复盘卡、F502 曲库 Room v3 迁移+保存/搜索/进度/加载、F503 音色向导）；**M6 基建**（F601 AudioPcmExtractor 抽 16k 单声道 PCM+扒谱入口、F603 MidiTabConverter 弦品 DP+量化；F504/F604 评估决策=暂不做/不上线 v1 落档）
+- 阻塞如实标注: F602（basic-pitch 无官方 ONNX，需 Python 转换+推理验证）；F504 实测阻塞于方舟开通
+- **Release 机制**: .github/workflows/release.yml（tag v* → 测试 → APK → GitHub Releases 挂安装包），v0.2.5 已发布成功（GuitarCoach-v0.2.5-debug.apk 47.6MB 远程可装）；softprops action 解析失败两次后改用 runner 自带 gh
+- 验证: 103/103 单测全绿（run-tests-local.sh）；每特性本地 assembleDebug 出 APK（交付纪律）；CI 逐笔绿
+- 监督员: 本段抓 4 个实错修复——dex 合并原生崩溃（gradle.properties 降并发）、midiFromFrequency 截断半音级偏差（P1）、AudioPcmExtractor 装箱 OOM（P1）、相机不 unbind+executor 竞态（P1）等
+- Next: 真机验收 M1-M6 全部待验收特性 → M1 收口 v0.2.0 → F602 待 ONNX 转换工具链 → 后续打磨
+
 
 - Completed: F206 移调计算器（CI 绿 **done**）；F209 指法 DP（CI 绿 **done**，横按物理口径：同品异弦同指=合法横按，集成进 F207）；F204 结构化讲解（识别与讲解分离，explainTabDocument 替代看图讲解）；F203 编辑修正（TabBarEditDialog + withBar 回写，讲解基随修正数据）；F202 谱面渲染/点按试听（自绘 Canvas + TonePlayer；alphaTab 待 gradle 确认）；F208 卡片点读（TTS + PhraseCache 离线缓存 + 原图对照）；M3 前置 hand_landmarker.task 入库 assets（unzip 校验通过）
 - 验证: 每特性先本地 JUnitCore（**产品化为 scripts/run-tests-local.sh**，L013：临时目录必须成对刷新）后 CI 绿；单测从 5 → 73 个

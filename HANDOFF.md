@@ -27,26 +27,25 @@ bash scripts/build.sh compileDebugKotlin   # 本地快速验证
 - 本地快速跑单测的绕法：拷编译产物+依赖 jar 到 ASCII 临时目录手工跑 JUnitCore（详见 L012 防复发栏，未产品化）
 - 本机 Android SDK 36 已装（local.properties 已配 sdk.dir）；WSL 无关；Windows GBK 控制台乱码属正常
 
-## 四、当前状态快照（2026-09-16 交付点 · M2 代码面收口）
+## 四、当前状态快照（2026-09-16 交付点 · M1-M6 代码面全部落地）
 
-- **里程碑**：M0 ✅（v0.1.0）｜M1 代码面 7/7 完成，**关闭条件=真机验收**｜M2 代码面 8/9 完成（F205 阻塞），均待真机验收｜M3 前置已备（hand_landmarker.task 已入 assets）
-- **特性计数**：38 项 —— done 9（F001-F005、F104、F107、F206、F209，全部 CI 绿）；代码完成待真机验收 8（F101/F102/F103/F105/F106 + F201/F202/F203/F204/F207/F208 中的 M2 部分）；F205 阻塞待用户确认；其余 pending
-- **CI**：全绿（main @ ad90f62 起每笔特性提交均绿）；APK 可在 Actions artifact 下载
-- **本地单测**：`bash scripts/run-tests-local.sh`（L012 绕法产品化，L013 成对刷新教训）——73 个用例全绿
+- **里程碑**：M0 ✅（v0.1.0）｜M1 代码面 7/7｜M2 代码面 9/9（F205/F206/F209 done）｜M3 代码面 3/3｜M4 代码面 3/4（F404 v1 诚实降级）｜M5 代码面 3/4（F504 决策暂不做）｜M6 基建完成（F602 阻塞）——**关闭条件全部=真机验收**
+- **特性计数**：38 项 —— done 12（F001-F005、F104、F107、F205、F206、F209 等，CI 绿）；代码完成待真机验收 ~19；F602 阻塞（basic-pitch 无官方 ONNX）；F504/F604 评估决策记录已落档（暂不做/不上线）
+- **Release**：tag v* → release.yml 自动测试+出 APK+挂 GitHub Releases；**v0.2.5 已发布**（GuitarCoach-v0.2.5-debug.apk 远程可装）
+- **CI**：全绿；**本地单测** `bash scripts/run-tests-local.sh` 103 用例全绿；每特性收尾本地 assembleDebug 出 APK（AGENTS.md 交付纪律）
 - 进行中无未提交代码，工作区干净
-- 本会话特性明细：F206 移调计算器、F209 指法 DP（横按物理口径）、F204 结构化讲解、F203 编辑修正、F202 自绘 Canvas 渲染+点按试听、F208 卡片点读+TTS+缓存、M3 模型入库
+- 本段特性明细：M3 视觉教练（跟踪/警报/点评+TTS）、M4 跟练判定+曲线+互验、M5 曲库 Room v3+周复盘+音色向导、M6 扒谱基建（抽 PCM+弦品 DP）；F205 GP 导入（alphaTab 1.8.4 引入经目标确认）
 
 ## 五、下一步（按优先级）
 
-1. **真机验收**（等用户连小米 14）：`adb devices` → `adb install -r app/build/outputs/apk/debug/app-debug.apk` → 按 docs/roadmap/M1+M2 文档逐特性验收（M1 五特性 + M2 六特性）→ 全过后 M1 收口 v0.2.0（CHANGELOG 大版本 + versionName + ROADMAP 状态表）
-2. **F205 Guitar Pro 导入**：等用户确认 gradle 依赖（alphaTab 1.8.4 MPL-2.0，坐标已核实）→ 改 libs.versions.toml + build.gradle.kts → alphaTab 导入转 TabDocument
-3. **M3 视觉教练开工**：hand_landmarker.task 已入 assets，直接从 F301 相机实时跟踪开始
-4. F202 alphaTab 精渲染升级（可选，与 F205 同一批 gradle 确认）
+1. **真机验收 M1-M6**（等用户连小米 14）：连上后按 docs/roadmap/M1-M6 各文档逐特性验收；APK 可从 GitHub Releases 直接下载安装
+2. **里程碑收口**：M1+M2 验收过 → v0.2.0/v0.3.0 大版本（CHANGELOG 大版本 + versionName + ROADMAP）
+3. **F602 转写引擎**：需 Python 工具链把 basic-pitch 转 ONNX 并推理验证（可选项，阻塞未排期）
+4. F202 alphaTab 精渲染升级（可选）
 
 ## 六、待用户操作（阻塞项，别干等）
 
 - **小米 14 USB 连接**（授权 adb 调试）——M1+M2 全部真机验收的前置
-- **gradle 配置改动确认**：F205/F202 升级需要引入 alphaTab 1.8.4（MPL-2.0 已评估；CLAUDE.md 规定 gradle 改动需用户确认，故未动）
 - 火山方舟控制台开通 `glm-5-3-flash-260828`（开通后按 docs/模型API接入手册.md §2.4 回补 3 项实测）
 - 可选：手机支架（M3 视觉教练外设）
 
