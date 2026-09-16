@@ -4,6 +4,8 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.util.Log
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * 试听播放器（F202 用户反馈"听不了/太简陋"后重写）：
@@ -20,6 +22,10 @@ class TonePlayer {
 
     @Volatile private var current: AudioTrack? = null
     @Volatile private var playbackId: Long = 0
+
+    /** 播放进度（毫秒，从 0 计）；非播放态为 -1。整段播放的光标跟随用。 */
+    private val _positionMs = MutableStateFlow(-1L)
+    val positionMs: StateFlow<Long> = _positionMs
 
     /** 单音点按：600ms 短促试听。 */
     fun play(midi: Int, durationMs: Long = 600L) {
@@ -80,6 +86,7 @@ class TonePlayer {
                         break
                     }
                     offset += written
+                    _positionMs.value = offset / 2 * 1000L / SAMPLE_RATE // 已写入≈已播放（阻塞写准同步）
                 }
                 if (playbackId == myId) Thread.sleep(120)
             } catch (e: IllegalStateException) {
@@ -96,6 +103,7 @@ class TonePlayer {
 
     fun stop() {
         playbackId++
+        _positionMs.value = -1L
         current?.let {
             runCatching { it.pause() }
             // release 让阻塞中的 write 立刻返回错误/抛异常，写线程得以走 finally 释放（监督员 P1：只 pause 会永久阻塞+泄漏）

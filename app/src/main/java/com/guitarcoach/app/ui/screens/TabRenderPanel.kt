@@ -16,10 +16,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -62,6 +64,7 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
     var selected by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var playing by remember { mutableStateOf(false) } // F202 试听升级：整段播放
     var playJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) } // 旧复位协程取消，防状态竞态（监督员 P2）
+    val positionMs by tonePlayer.positionMs.collectAsState() // 播放光标（-1 = 未播放）
     val density = LocalDensity.current
     val barWidth = with(density) { 240.dp.toPx() }
     val spacing = with(density) { 18.dp.toPx() }
@@ -152,10 +155,19 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        val scrollState = rememberScrollState()
+        LaunchedEffect(positionMs) {
+            if (positionMs >= 0) {
+                val secPerBeat = 60.0 / doc.tempo
+                val curBar = ((positionMs / 1000.0 / secPerBeat) / 4).toInt().coerceIn(0, barCount - 1)
+                val target = (nameGutter + curBar * barWidth - 80f).toInt().coerceAtLeast(0)
+                scrollState.animateScrollTo(target)
+            }
+        }
         Surface(shape = MaterialTheme.shapes.medium, tonalElevation = 1.dp) {
             Canvas(
                 modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
+                    .horizontalScroll(scrollState)
                     .width(canvasWidthDp)
                     .height(canvasHeightDp)
                     .pointerInput(doc) {
@@ -201,6 +213,20 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
                 for (s in 0..5) {
                     val y = topPad + s * spacing
                     drawLine(lineColor, Offset(gutter, y), Offset(gutter + barCount * barWidth, y), strokeWidth = 1.2.dp.toPx()) // 弦名行起
+                }
+
+                // 播放光标：当前小节整框高亮（位置来自 TonePlayer 进度流）
+                if (positionMs >= 0) {
+                    val secPerBeat = 60.0 / doc.tempo
+                    val curBeat = positionMs / 1000.0 / secPerBeat
+                    val curBar = (curBeat / 4).toInt().coerceIn(0, barCount - 1)
+                    val x0 = gutter + curBar * barWidth
+                    drawRoundRect(
+                        Color(0x334CD964),
+                        topLeft = Offset(x0 + 1f, topPad - 8f),
+                        size = androidx.compose.ui.geometry.Size(barWidth - 2f, 5 * spacing + 16f),
+                        cornerRadius = CornerRadius(6f),
+                    )
                 }
 
                 // 小节线 + 小节号 + 终止双线
