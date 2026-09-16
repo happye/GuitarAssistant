@@ -398,7 +398,7 @@
     {
       "id": "F704",
       "milestone": "M7",
-      "title": "调音器调弦预设：7 种常用调弦（E标准/Drop D/Eb/D/Drop C/Open G/DADGAD）运行中即时切换 + 动态认弦",
+      "title": "调音器调弦预设（7 种）+ 音分表盘（±50 指针/±5 绿区）+ 动态认弦",
       "status": "done",
       "passes": true,
       "test_criteria": "Tunings 数据 7 项各 6 值；nearestString 换 tuning 即刻生效（引擎逻辑，真机验证认弦体验）"
@@ -418,6 +418,22 @@
       "status": "done",
       "passes": true,
       "test_criteria": "合成节拍 120/90/160BPM 检出 ±2；44100 重采样口径；过短/静音返回 null（TempoDetectorTest 5 用例）"
+    },
+    {
+      "id": "F708",
+      "milestone": "M7",
+      "title": "播放光标跟随 + 自动滚动（Songsterr 式）：TonePlayer 进度流 → 当前小节高亮 + 跟拍滚动；单音试听不触发",
+      "status": "done",
+      "passes": true,
+      "test_criteria": "进度流随写推进（阻塞写准同步）；同小节滚动节流；UI 层验证"
+    },
+    {
+      "id": "F709",
+      "milestone": "M7",
+      "title": "首页快捷导航：识谱/练习室/乐理直达按钮",
+      "status": "done",
+      "passes": true,
+      "test_criteria": "导航路由正确（launchSingleTop）；UI 验证"
     }
   ]
 }
