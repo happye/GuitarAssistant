@@ -6,6 +6,7 @@
 ## [未发布] v0.2.0 —— M1 乐理与识谱基础（进行中）
 
 ### 小版本
+- v0.2.8（2026-09-17）：**用户反馈五连修**——①签名统一（仓库内 debug.keystore，本地/CI 任意来源 APK 可覆盖安装，此前 CI runner 每次自生成签名互斥）+ 版本注入（versionCode=提交数/versionName=tag 号）②全屏状态持久化（rememberSaveable+JSON Saver：识谱粘贴/解析/讲解、聊天、移调、节拍器、周复盘、曲库搜索、音色向导）③长音频流式抽取（Whole Lotta Love 5:30 报错根修：StreamingResampler 跨块插值直写文件，上限放宽 30 分钟）④识谱准确性 v2（提示词三步法+四类错型自检+CoVe 式原图复核二次 pass）与谱面渲染观感精修（参考 Songsterr/alphaTab 惯例：品数落线/拍位比例/技巧记号/段落条）⑤监督员 P1：imageBase64 出 saveable 防 TransactionTooLargeException
 - v0.2.7（2026-09-16）：**M3-M6 代码面全部落地**——M3 视觉教练（F301 实时跟踪叠加/F302 姿势警报/F303 关键帧点评+TTS）+ M4 音频反馈（F401 跟练判定/F402 音高曲线/F403 视听互验/F404 诚实降级）+ M5 打磨（F501 AI 周复盘/F502 曲库管理 Room v3/F503 音色向导）+ M6 扒谱基建（F601 抽 PCM/F603 弦品 DP 量化）——以上代码完成待真机验收；F504/F604 评估决策记录落档（暂不做）；F602 阻塞（basic-pitch 无官方 ONNX，需 Python 转换验证）
 - v0.2.6（2026-09-16）：F205 Guitar Pro 导入 done（alphaTab 1.8.4 引入经用户目标确认，MPL-2.0；Score→TabDocument 映射 + alphaTex 同路径 3 单测；GP 导入按钮入识谱台）；TabStudioScreen 拆分偿清 DEBT-005（382→237 行）；gradle.properties 降并发修 dex 合并原生崩溃；CI 发布工作流（tag→Release 挂 APK）
 - v0.2.5（2026-09-16）：**M2 代码面收口**——F209 自动指法 DP（横按物理规则校验，CI 绿 done）+ F204 结构化讲解（识别与讲解分离落地）+ F203 识别结果编辑修正（逐小节改弦/品/拍回写）+ F202 谱面渲染与点按试听（自绘 Canvas + AudioTrack 单音合成；alphaTab 引入待用户确认 gradle 改动）+ F208 乐句卡片点读（原图对照/整段与单音 TTS 朗读/本地缓存离线回看）——以上代码完成待真机验收；F205 GP 导入阻塞待确认；M3 前置 hand_landmarker.task 入库；本地单测绕法产品化 scripts/run-tests-local.sh（L013）

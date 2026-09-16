@@ -1,7 +1,7 @@
 {
   "project": "吉他学习助手（GuitarCoach）",
   "version": "0.1.0",
-  "updated_at": "2026-09-16",
+  "updated_at": "2026-09-17",
   "source": "README「当前状态」表 + docs/开发方案.md §9 里程碑路线图（验收标准同源）",
   "conventions": {
     "status": "done | pending（done 必须同时 passes=true）",
@@ -148,7 +148,8 @@
       "priority": 21,
       "status": "pending",
       "passes": false,
-      "test_criteria": "TabDocument 渲染与源谱一致；点按某音发声且音高与 midi() 换算一致"
+      "test_criteria": "TabDocument 渲染与源谱一致；点按某音发声且音高与 midi() 换算一致",
+      "notes": "；2026-09-17 用户反馈后 v2 观感精修（Songsterr 惯例）+ 4/4 拍位口径"
     },
     {
       "id": "F203",

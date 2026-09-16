@@ -37,6 +37,14 @@
 - Status: F201 代码完成待真机验收；M2 剩余：F202-F206（alphaTab 渲染/GP 导入/移调计算器/逐句讲解 F207-F209）
 - Next: F202 谱面渲染（alphaTab 决策点）或 F206 移调计算器（纯 JVM 快交付）
 
+## 2026-09-17 - Session: 用户反馈五连修（签名/持久化/长音频/识谱观感与准确性）
+
+- 用户实测反馈（v0.2.7 APK）：①切界面丢状态 ②debug APK 签名不一致无法覆盖安装、版本不变 ③文档滞后 ④识谱不准+太丑（要求参考网上资源）⑤重要点要记忆；music/ 下两首测试 riff（Blur-Song 2、Led Zeppelin-Whole Lotta Love，后者 5:30 抽取报错）
+- Completed: 签名统一（keystore/debug.keystore 入库+signingConfigs，CI/本地同签名）+ 版本注入（-P pkgVersionName/Code，release.yml 按 tag 注入，versionCode=提交数）；9 个 Screen 的用户内容态 rememberSaveable+JSON Saver（ui/Saveable.kt）；AudioPcmExtractor 流式化（StreamingResampler 跨块插值=尾块对齐数学，30 分钟上限，106 用例含逐点一致性）；TAB_TO_JSON v2+TAB_VERIFY（CoVe 自校验，回退阈值防修正版缩水）；TabRenderPanel v2 观感（Songsterr 惯例：品数落线/4/4 拍位比例/技巧记号/段落条/弦名/终止双线）+ TabLayout 固定 4/4 口径；监督员 P1 imageBase64 出 saveable
+- 决策: alphaTab 完整渲染列 DEBT-007（需 AlphaSkia 原生链+Bravura 字体，APK +10~20MB，未引入）；music/ 素材 gitignore（版权歌曲不入库）
+- 验证: 106/106 单测全绿；APK 50.4MB 出炉（versionCode 动态=提交数，见下条 gradle 修正）
+- 阻塞: GitHub 网络间歇不通（用户代理 7890 时关）→ 每小时自动重试 push（cron），恢复后补推 main+tags 并验证 v0.2.8 Release
+
 ## 2026-09-16 - Session: M3-M6 代码面全部落地 + Release 机制上线（目标驱动长会话·第二段）
 
 - Completed: 用户目标"把 M1-M6 所有能做的任务都做完"——**M3 视觉教练**（F301 LiveHandLandmarker LIVE_STREAM+GPU/骨架叠加、F302 PostureRules 折腕近似/塌指/拇指/出框 7 单测、F303 关键帧点评+TTS）；**M4 音频反馈**（F401 RiffMatcher 对齐判定、F402 音高曲线+闷音灰段、F403 以音频为准提示、F404 未标定不显示的诚实口径）；**M5**（F501 WeeklyReview+周复盘卡、F502 曲库 Room v3 迁移+保存/搜索/进度/加载、F503 音色向导）；**M6 基建**（F601 AudioPcmExtractor 抽 16k 单声道 PCM+扒谱入口、F603 MidiTabConverter 弦品 DP+量化；F504/F604 评估决策=暂不做/不上线 v1 落档）
@@ -51,4 +59,6 @@
 - 验证: 每特性先本地 JUnitCore（**产品化为 scripts/run-tests-local.sh**，L013：临时目录必须成对刷新）后 CI 绿；单测从 5 → 73 个
 - 监督员: 常驻 subagent 本轮抓 6 个实错全部修复——P1×3（FingeringSolver 全空弦槽崩溃、TabEditPanel rows[i] 赋值与 Icons 导入编译错）+ P2×3（TonePlayer audio→tab 依赖红线、tech-debt 编号重号、TTS isReady 非 Compose State）；另促成两处超 300 行文件拆分（PhraseCoach→PhraseExplainModel、DEBT-005 记账）
 - Status: M2 代码面 8/9 完成（F205 阻塞）；新特性均待真机验收；feature_list: done 9 项（F001-F005、F104、F107、F206、F209）
+## 2026-09-16 - Session: M2 代码面收口（F202-F209 全部落地）+ F206 done + M3 前置
+
 - Next: 用户连小米 14 → M1+M2 一起真机验收 → M1 收口 v0.2.0；用户确认 gradle 依赖后做 F205（alphaTab）；然后 M3

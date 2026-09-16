@@ -14,9 +14,12 @@ android {
         applicationId = "com.guitarcoach.app"
         minSdk = 26
         targetSdk = 36
-        // 版本注入：CI 打 tag 时传 -PpkgVersionName/-PpkgVersionCode（versionCode=提交数，单调递增）；
-        // 本地缺省值随当前开发版本走。覆盖安装的关键是签名统一（keystore/debug.keystore 入库）。
-        versionCode = (project.findProperty("pkgVersionCode")?.toString()?.toInt()) ?: 26
+        // 版本注入：versionCode=git 提交数（本地与 CI 同源，单调递增——固定缺省值会被 CI 包降级拒装）；
+        // versionName：tag 构建传 -PpkgVersionName，本地缺省随当前开发版本。
+        val gitCommitCount = runCatching {
+            providers.exec { commandLine("git", "rev-list", "--count", "HEAD") }.standardOutput.asText.get().trim().toInt()
+        }.getOrElse { 1 }
+        versionCode = (project.findProperty("pkgVersionCode")?.toString()?.toInt()) ?: gitCommitCount
         versionName = (project.findProperty("pkgVersionName") as String?) ?: "0.2.8"
 
         ndk {
