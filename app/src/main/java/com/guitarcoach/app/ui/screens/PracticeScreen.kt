@@ -185,7 +185,6 @@ private fun TunerMeter(cents: Double?, modifier: Modifier = Modifier) {
         val cx = size.width / 2
         val cy = size.height * 0.92f
         val radius = size.height * 0.78f
-        fun angleFor(c: Double): Float = ((c / 50.0).coerceIn(-1.0, 1.0) * 90 - 90).toFloat() // -50→-180? 映射到 -90..90（相对正上）
         // 弧：-90°..90°（以正上为 0）
         drawArc(
             arcColor.copy(alpha = 0.5f),
@@ -200,9 +199,9 @@ private fun TunerMeter(cents: Double?, modifier: Modifier = Modifier) {
             style = androidx.compose.ui.graphics.drawscope.Stroke(width = 10f),
             topLeft = Offset(cx - radius, cy - radius), size = androidx.compose.ui.geometry.Size(radius * 2, radius * 2),
         )
-        // 刻度（-50/-25/0/25/50）
+        // 刻度（-50/-25/0/25/50）：c=0 → 正上，±50 → ±90°（与绿区同坐标系，监督员 P1 修正）
         for (c in listOf(-50, -25, 0, 25, 50)) {
-            val a = Math.toRadians((c / 50.0 * 90 - 90))
+            val a = Math.toRadians(c / 50.0 * 90)
             val r1 = radius - 8f
             val r2 = radius + 8f
             drawLine(
@@ -214,7 +213,7 @@ private fun TunerMeter(cents: Double?, modifier: Modifier = Modifier) {
         }
         // 指针
         cents?.let { c ->
-            val a = Math.toRadians((c / 50.0).coerceIn(-1.0, 1.0) * 90 - 90)
+            val a = Math.toRadians((c / 50.0).coerceIn(-1.0, 1.0) * 90)
             val color = if (kotlin.math.abs(c) <= 5) goodColor else needleColor
             drawLine(
                 color,

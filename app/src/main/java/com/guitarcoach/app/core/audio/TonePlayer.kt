@@ -27,13 +27,13 @@ class TonePlayer {
     private val _positionMs = MutableStateFlow(-1L)
     val positionMs: StateFlow<Long> = _positionMs
 
-    /** 单音点按：600ms 短促试听。 */
+    /** 单音点按：600ms 短促试听（不上报进度，不触发播放光标，监督员 P2）。 */
     fun play(midi: Int, durationMs: Long = 600L) {
-        playSequence(listOf(ToneRenderer.ToneEvent(0.0, midi, durationMs / 1000.0)))
+        playSequence(listOf(ToneRenderer.ToneEvent(0.0, midi, durationMs / 1000.0)), reportProgress = false)
     }
 
-    /** 整段/整句播放：按时间表一次渲染混合播放。 */
-    fun playSequence(events: List<ToneRenderer.ToneEvent>) {
+    /** 整段/整句播放：按时间表一次渲染混合播放，进度流随写推进（光标跟随）。 */
+    fun playSequence(events: List<ToneRenderer.ToneEvent>, reportProgress: Boolean = true) {
         if (events.isEmpty()) return
         stop()
         val myId = ++playbackId
@@ -41,11 +41,11 @@ class TonePlayer {
         Thread {
             val pcm = ToneRenderer.render(events, SAMPLE_RATE)
             if (playbackId != myId) return@Thread // 渲染期间被新播放/停止取代
-            startTrack(pcm, myId)
+            startTrack(pcm, myId, reportProgress)
         }.apply { priority = Thread.NORM_PRIORITY + 1 }.start()
     }
 
-    private fun startTrack(pcm: ShortArray, myId: Long) {
+    private fun startTrack(pcm: ShortArray, myId: Long, reportProgress: Boolean) {
 
         val minBuf = AudioTrack.getMinBufferSize(SAMPLE_RATE, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT)
         val track = AudioTrack.Builder()
@@ -86,7 +86,7 @@ class TonePlayer {
                         break
                     }
                     offset += written
-                    _positionMs.value = offset / 2 * 1000L / SAMPLE_RATE // 已写入≈已播放（阻塞写准同步）
+                    if (reportProgress) _positionMs.value = offset / 2 * 1000L / SAMPLE_RATE // 已写入≈已播放（阻塞写准同步）
                 }
                 if (playbackId == myId) Thread.sleep(120)
             } catch (e: IllegalStateException) {

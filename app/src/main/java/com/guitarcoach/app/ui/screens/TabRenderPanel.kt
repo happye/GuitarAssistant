@@ -156,12 +156,17 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         val scrollState = rememberScrollState()
+        var lastScrolledBar by remember { mutableStateOf(-1) }
         LaunchedEffect(positionMs) {
             if (positionMs >= 0) {
                 val secPerBeat = 60.0 / doc.tempo
                 val curBar = ((positionMs / 1000.0 / secPerBeat) / 4).toInt().coerceIn(0, barCount - 1)
-                val target = (nameGutter + curBar * barWidth - 80f).toInt().coerceAtLeast(0)
-                scrollState.animateScrollTo(target)
+                if (curBar != lastScrolledBar) { // 同小节内不重复滚（高频进度天然节流，监督员 P2）
+                    lastScrolledBar = curBar
+                    scrollState.animateScrollTo((nameGutter + curBar * barWidth - 80f).toInt().coerceAtLeast(0))
+                }
+            } else {
+                lastScrolledBar = -1
             }
         }
         Surface(shape = MaterialTheme.shapes.medium, tonalElevation = 1.dp) {
