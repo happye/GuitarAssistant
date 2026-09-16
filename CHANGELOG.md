@@ -6,6 +6,9 @@
 ## [未发布] v0.2.0 —— M1 乐理与识谱基础（进行中）
 
 ### 小版本
+- v0.2.14（2026-09-17）：M7 集百家之长首批——F701 和弦库（28 形状指板图+琶音试听+指法信息，数据 4 单测）/ F702 跟练星级连击 / F703 速度训练渐进提速提示；全网功能调研落档 .learnings/feature-research-2026-09-17.md
+- v0.2.13（2026-09-17）：**F602 扒谱端侧转写引擎落地（阻塞解除）**——basic-pitch 0.4.0 PyPI wheel 自带 nmp.tflite（0.2MB 随 APK，Apache-2.0）；onnxruntime 实测 440Hz→midi69 精确命中 + music/ 素材端到端 166 音符；TranscriptionEngine（22050Hz 2s 窗推理）+ NoteDecoder 纯函数 5 单测；扒谱入口全链路（选音频→转写→弦品 DP→TabDocument 进工作台）
+- v0.2.12（2026-09-17）：用户反馈三 bug——文本谱解析 v2.1（和弦行/说明行误读、拍位跨小节漂移、x 重复标记三根因修复，真实 UG 谱回归 7 用例）/ 试听重写 STREAM 模式+「▶ 播放整段」（ToneRenderer 序列渲染，stop 泄漏与 UI 线程合成修复）/ 布局多模态视觉自检基建（PNG 生成+程序化断言，亲验无偏移）
 - v0.2.11（2026-09-17）：开发文档全量对齐（用户指令授权）——docs/开发方案.md §7.3 代码结构/§9 里程碑表（M1-M6 状态标注）/§11 行动清单三节刷新；App 首页「开发路线图」卡片更新为真实功能进度（原 M0 时代占位文案）；versionName 缺省跟齐
 - v0.2.8（2026-09-17）：**用户反馈五连修**——①签名统一（仓库内 debug.keystore，本地/CI 任意来源 APK 可覆盖安装，此前 CI runner 每次自生成签名互斥）+ 版本注入（versionCode=提交数/versionName=tag 号）②全屏状态持久化（rememberSaveable+JSON Saver：识谱粘贴/解析/讲解、聊天、移调、节拍器、周复盘、曲库搜索、音色向导）③长音频流式抽取（Whole Lotta Love 5:30 报错根修：StreamingResampler 跨块插值直写文件，上限放宽 30 分钟）④识谱准确性 v2（提示词三步法+四类错型自检+CoVe 式原图复核二次 pass）与谱面渲染观感精修（参考 Songsterr/alphaTab 惯例：品数落线/拍位比例/技巧记号/段落条）⑤监督员 P1：imageBase64 出 saveable 防 TransactionTooLargeException
 - v0.2.7（2026-09-16）：**M3-M6 代码面全部落地**——M3 视觉教练（F301 实时跟踪叠加/F302 姿势警报/F303 关键帧点评+TTS）+ M4 音频反馈（F401 跟练判定/F402 音高曲线/F403 视听互验/F404 诚实降级）+ M5 打磨（F501 AI 周复盘/F502 曲库管理 Room v3/F503 音色向导）+ M6 扒谱基建（F601 抽 PCM/F603 弦品 DP 量化）——以上代码完成待真机验收；F504/F604 评估决策记录落档（暂不做）；F602 阻塞（basic-pitch 无官方 ONNX，需 Python 转换验证）

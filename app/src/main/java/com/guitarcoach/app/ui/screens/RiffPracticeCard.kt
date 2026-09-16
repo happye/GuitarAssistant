@@ -166,11 +166,34 @@ internal fun RiffPracticeCard() {
             }
             result?.let { m ->
                 val preset = PRESETS[presetIndex]
+                val stars = when {
+                    m.accuracy >= 0.999 -> 3
+                    m.accuracy >= 0.8 -> 2
+                    m.accuracy >= 0.6 -> 1
+                    else -> 0
+                }
+                // 连击：顺序最长连续 HIT
+                var streak = 0
+                var bestStreak = 0
+                for (t in m.perTarget) {
+                    if (t.status == RiffMatcher.Status.HIT) { streak++; if (streak > bestStreak) bestStreak = streak } else streak = 0
+                }
                 Text(
                     "命中 ${m.hitCount}/${m.perTarget.size}（${(m.accuracy * 100).toInt()}%）" +
+                        " · " + "★".repeat(stars) + "☆".repeat(3 - stars) +
+                        " · 最长连击 $bestStreak" +
                         if (m.extraNotes.isNotEmpty()) " · 多弹 ${m.extraNotes.size} 个音" else "",
                     style = MaterialTheme.typography.titleSmall,
                 )
+                // 速度训练提示（Top2）：高命中率就渐进提速
+                if (m.accuracy >= 0.9) {
+                    val nextBpm = (preset.bpm * 1.1).toInt().coerceAtMost(240)
+                    Text(
+                        "全对！下次把速度提到 $nextBpm BPM 再练（渐进提速）",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 m.perTarget.forEach { t ->
                     val label = when (t.status) {
                         RiffMatcher.Status.HIT -> "✔"

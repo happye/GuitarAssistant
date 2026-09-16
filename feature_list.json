@@ -370,6 +370,30 @@
       "status": "pending",
       "passes": false,
       "test_criteria": "同一素材端侧 vs 云端对比报告（正确率/成本/耗时），并给出上线/不上线决策记录"
+    },
+    {
+      "id": "F701",
+      "milestone": "M7",
+      "title": "和弦库：28 个常用和弦指板图 + 琶音试听 + 指法信息（乐理页入口）",
+      "status": "done",
+      "passes": true,
+      "test_criteria": "数据测试：开放和弦标准把位/横按平移/强力和弦/全部形状合法（ChordLibraryTest 4 用例）"
+    },
+    {
+      "id": "F702",
+      "milestone": "M7",
+      "title": "跟练游戏化：星级（3/2/1 按命中率）+ 最长连击显示",
+      "status": "done",
+      "passes": true,
+      "test_criteria": "RiffMatcher 判定数据驱动，UI 层展示；逻辑随 F401 单测覆盖"
+    },
+    {
+      "id": "F703",
+      "milestone": "M7",
+      "title": "速度训练提示：命中率 ≥90% 时提示渐进提速（×1.1 BPM）",
+      "status": "done",
+      "passes": true,
+      "test_criteria": "纯展示提示，BPM 计算 clamp 240；逻辑随 F401 覆盖"
     }
   ]
 }
