@@ -3,18 +3,23 @@ package com.guitarcoach.app.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -32,7 +37,11 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.guitarcoach.app.core.audio.TonePlayer
+import com.guitarcoach.app.core.audio.ToneRenderer
 import com.guitarcoach.app.core.tab.TabDocument
 import com.guitarcoach.app.core.tab.TabLayout
 import com.guitarcoach.app.core.tab.midi
@@ -46,10 +55,13 @@ import com.guitarcoach.app.core.tab.midi
 @Composable
 fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
     val tonePlayer = remember { TonePlayer() }
+    val scope = rememberCoroutineScope()
     DisposableEffect(Unit) { onDispose { tonePlayer.stop() } }
 
     val textMeasurer = rememberTextMeasurer()
     var selected by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var playing by remember { mutableStateOf(false) } // F202 试听升级：整段播放
+    var playJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) } // 旧复位协程取消，防状态竞态（监督员 P2）
     val density = LocalDensity.current
     val barWidth = with(density) { 240.dp.toPx() }
     val spacing = with(density) { 18.dp.toPx() }
@@ -86,9 +98,57 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
         }
     }
 
+    // 整段播放时间表：全局小节号 × 4 拍 + 小节内拍位，BPM 换算秒
+    val playEvents = remember(doc) {
+        val secPerBeat = 60.0 / doc.tempo
+        var globalBar = 0
+        buildList {
+            doc.sections.forEach { section ->
+                section.bars.forEach { bar ->
+                    bar.notes.forEach { note ->
+                        add(ToneRenderer.ToneEvent(timeSec = (globalBar * 4 + note.beat) * secPerBeat, midi = note.midi()))
+                    }
+                    globalBar++
+                }
+            }
+        }
+    }
+
     Column(modifier) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            Text(
+                "调弦 ${doc.tuning} · ${doc.tempo} BPM · ${barCount} 小节",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                onClick = {
+                    playJob?.cancel()
+                    if (playing) {
+                        tonePlayer.stop()
+                        playing = false
+                    } else {
+                        tonePlayer.playSequence(playEvents)
+                        playing = true
+                        playJob = scope.launch {
+                            withContext(Dispatchers.Default) {
+                                val totalMs = playEvents.maxOf { it.timeSec + it.durationSec } * 1000
+                                kotlinx.coroutines.delay(totalMs.toLong() + 200)
+                            }
+                            playing = false
+                        }
+                    }
+                },
+                enabled = playEvents.isNotEmpty(),
+            ) { Text(if (playing) "■ 停止" else "▶ 播放整段") }
+        }
         Text(
-            "调弦 ${doc.tuning} · ${doc.tempo} BPM · ${barCount} 小节 · 点按音符试听",
+            "点按音符试听单音",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
