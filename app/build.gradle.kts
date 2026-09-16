@@ -20,7 +20,7 @@ android {
             providers.exec { commandLine("git", "rev-list", "--count", "HEAD") }.standardOutput.asText.get().trim().toInt()
         }.getOrElse { 1 }
         versionCode = (project.findProperty("pkgVersionCode")?.toString()?.toInt()) ?: gitCommitCount
-        versionName = (project.findProperty("pkgVersionName") as String?) ?: "0.2.8"
+        versionName = (project.findProperty("pkgVersionName") as String?) ?: "0.2.10"
 
         ndk {
             // 适配基线：小米 14（骁龙 8 Gen 3 为 64 位专用 SoC），只出 arm64-v8a；
