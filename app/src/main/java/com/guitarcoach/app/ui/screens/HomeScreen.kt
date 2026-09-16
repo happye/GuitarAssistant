@@ -107,12 +107,10 @@ fun HomeScreen(container: AppContainer) {
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("开发路线图", style = MaterialTheme.typography.titleMedium)
-                Text("✅ M0 骨架就绪：模型网关（流式+备份降级）+ 调音器（MPM）", style = MaterialTheme.typography.bodySmall)
-                Text("⬜ M1 乐理问答聊天室 + 文本谱导入展示 + 练习记录", style = MaterialTheme.typography.bodySmall)
-                Text("⬜ M2 拍谱识谱：拍照 → 结构化谱面 → 逐段讲解（LlmTabExtractor 已就绪）", style = MaterialTheme.typography.bodySmall)
-                Text("⬜ M3 视觉教练：相机实时手部跟踪 + 关键帧 AI 点评 + 语音播报", style = MaterialTheme.typography.bodySmall)
-                Text("⬜ M4 音频技巧检测（推弦/揉弦/闷音）+ 手位精确纠正", style = MaterialTheme.typography.bodySmall)
+                Text("功能与进度（v0.2.10）", style = MaterialTheme.typography.titleMedium)
+                Text("✅ 已可用：识谱（拍谱/粘贴/GP 导入）· 谱面渲染与点按试听 · 逐句讲解 · 乐理问答 · 移调计算器 · 指板可视化 · 调音器 · 节拍器 · 练习记录 · 视觉教练 · 跟练判定 · 曲库 · AI 周复盘 · 音色向导", style = MaterialTheme.typography.bodySmall)
+                Text("⏳ 待真机验收：以上功能在小米 14 上逐项确认后进入正式版（装 GitHub Releases 最新包即可参与）", style = MaterialTheme.typography.bodySmall)
+                Text("🔬 后续：音频转谱（F602 转写引擎接入中）、五线谱双谱渲染、按弦手位精纠", style = MaterialTheme.typography.bodySmall)
             }
         }
 
