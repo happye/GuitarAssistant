@@ -41,6 +41,9 @@ class LlmTabExtractor(private val visionChain: suspend () -> List<com.guitarcoac
      */
     suspend fun extractVerified(imageBase64: String): ExtractResult {
         val first = extract(imageBase64)
+        val n1 = first.document.sections.sumOf { s -> s.bars.sumOf { it.notes.size } }
+        // 超长谱（>150 音符）核对输出必被 maxTokens 截断，白花一次视觉调用——跳过二次 pass
+        if (n1 > 150) return first.copy(warnings = first.warnings + "谱较长（$n1 个音符），跳过自校验")
         val second = runCatching {
             val raw = LlmFallback.completeWithFallback(visionChain()) {
                 ChatSpec(
@@ -49,7 +52,8 @@ class LlmTabExtractor(private val visionChain: suspend () -> List<com.guitarcoac
                         json.encodeToString(TabDocument.serializer(), first.document) +
                         "\n请对照原图核对并输出修正后的完整 JSON。",
                     images = listOf(EncodedImage(imageBase64)),
-                    maxTokens = 4096,
+                    // 修正版 JSON 与初次等长：按音符数估 token（每音符约 20-40），防截断
+                    maxTokens = (n1 * 60).coerceAtLeast(4096).coerceAtMost(8192),
                     temperature = 0.1,
                     jsonMode = true,
                 )
@@ -58,7 +62,6 @@ class LlmTabExtractor(private val visionChain: suspend () -> List<com.guitarcoac
             clean(doc)
         }.getOrElse { return first }
         // 修正版显著缩水（核对反而漏音）时保守回退第一遍
-        val n1 = first.document.sections.sumOf { s -> s.bars.sumOf { it.notes.size } }
         val n2 = second.document.sections.sumOf { s -> s.bars.sumOf { it.notes.size } }
         return if (n1 > 0 && n2 < n1 / 2) {
             first.copy(warnings = first.warnings + "自校验结果异常（音符数 $n2 < $n1），已采用初次识别")

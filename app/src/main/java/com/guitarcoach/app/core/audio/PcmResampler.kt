@@ -74,6 +74,7 @@ class StreamingResampler(val inputRate: Int, val channels: Int, private val targ
         } else {
             DoubleArray(input.size) { input[it].toDouble() }
         }
+        if (mono.isEmpty()) return // 空块不刷新 tailBuffer，防跨块插值拿 0 长尾（监督员 P2）
         val total = inCount + mono.size
         val outs = ShortArray((mono.size / ratio + 2).toInt().coerceAtLeast(0))
         var oi = 0
@@ -90,6 +91,7 @@ class StreamingResampler(val inputRate: Int, val channels: Int, private val targ
         if (oi > 0) sink(outs.copyOf(oi))
         tailBuffer = mono
         inCount = total
+
     }
 
     /** 全局帧索引取值：< inCount 落在上一块（尾对齐），否则在当前块。 */

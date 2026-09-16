@@ -176,7 +176,7 @@ fun TheoryScreen(container: AppContainer) {
             }
             streamingText?.let { text ->
                 // 流式气泡只属于发起它的会话：中途切换会话时不在新会话里显示旧回复
-                if (currentId == null || currentId == streamingConvId) {
+                if (streaming && (currentId == null || currentId == streamingConvId)) {
                     item(key = STREAMING_BUBBLE_ID) {
                         ChatBubbleView(ChatBubble(STREAMING_BUBBLE_ID.toInt(), "assistant", text.ifBlank { "…" }))
                     }

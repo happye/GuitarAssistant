@@ -57,7 +57,11 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
     val barPad = with(density) { 16.dp.toPx() }
     val nameGutter = with(density) { 20.dp.toPx() } // 行首弦名区
     val geometry = TabLayout.Geometry(barWidth, spacing, topPad, barPad)
-    val placed = remember(doc, barWidth, spacing, topPad, barPad) { TabLayout.layout(doc, geometry) }
+    // gutter 同源偏移（监督员 P1）：TabLayout 不知道行首弦名区，绘制与点按判定统一在此加 gutter，
+    // 保证"看见的"与"点到的"同坐标系
+    val placed = remember(doc, barWidth, spacing, topPad, barPad) {
+        TabLayout.layout(doc, geometry).map { it.copy(x = it.x + nameGutter) }
+    }
 
     val barCount = doc.sections.sumOf { it.bars.size }.coerceAtLeast(1)
     val canvasWidthDp = with(density) { (barCount * barWidth + nameGutter).toDp() }
@@ -128,7 +132,7 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
                 // 拍位刻度（每拍一条浅竖线）
                 for (b in 0 until barCount) {
                     for (t in 1..3) {
-                        val x = gutter + b * barWidth + barPad + t / 4f * (barWidth - 2 * barPad)
+                        val x = gutter + b * barWidth + barPad + t / 4f * (barWidth - 2 * barPad) // 拍位刻度（网格坐标系，非音符系）
                         drawLine(beatTickColor, Offset(x, topPad - 4.dp.toPx()), Offset(x, topPad + 5 * spacing + 4.dp.toPx()), strokeWidth = 1.dp.toPx())
                     }
                 }
@@ -136,7 +140,7 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
                 // 六根谱线（1 弦在最上）
                 for (s in 0..5) {
                     val y = topPad + s * spacing
-                    drawLine(lineColor, Offset(gutter, y), Offset(gutter + barCount * barWidth, y), strokeWidth = 1.2.dp.toPx())
+                    drawLine(lineColor, Offset(gutter, y), Offset(gutter + barCount * barWidth, y), strokeWidth = 1.2.dp.toPx()) // 弦名行起
                 }
 
                 // 小节线 + 小节号 + 终止双线
