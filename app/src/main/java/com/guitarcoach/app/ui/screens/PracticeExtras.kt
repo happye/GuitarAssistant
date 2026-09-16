@@ -60,7 +60,7 @@ internal fun MetronomeCard() {
                 value = bpm.toFloat(),
                 onValueChange = {
                     bpm = it.toInt()
-                    engine.update(bpm, beats, subdivision, countIn = countIn)
+                    engine.update(bpm, beats, subdivision = subdivide, countIn = countIn)
                 },
                 valueRange = 40f..240f,
             )
@@ -70,7 +70,7 @@ internal fun MetronomeCard() {
                         selected = beats == b,
                         onClick = {
                             beats = b
-                            engine.update(bpm, b, subdivision, countIn = countIn)
+                            engine.update(bpm, b, subdivision = subdivide, countIn = countIn)
                         },
                         label = { Text("$b 拍") },
                     )
@@ -82,7 +82,7 @@ internal fun MetronomeCard() {
                         engine.stop()
                         running = false
                     } else {
-                        engine.update(bpm, beats, subdivision, countIn = countIn)
+                        engine.update(bpm, beats, subdivision = subdivide, countIn = countIn)
                         engine.start()
                         running = true
                     }
