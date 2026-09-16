@@ -109,7 +109,8 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
             doc.sections.forEach { section ->
                 section.bars.forEach { bar ->
                     bar.notes.forEach { note ->
-                        add(ToneRenderer.ToneEvent(timeSec = (globalBar * 4 + note.beat) * secPerBeat, midi = note.midi()))
+                        // 时长真实化：按谱面 duration 发声（转写/编辑产物有真实时值），缺省 0.6s
+                        add(ToneRenderer.ToneEvent(timeSec = (globalBar * 4 + note.beat) * secPerBeat, midi = note.midi(), durationSec = (note.duration * secPerBeat).coerceIn(0.15, 2.0)))
                     }
                     globalBar++
                 }
