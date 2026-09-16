@@ -14,6 +14,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.guitarcoach.app.core.tab.GpImporter
 import com.guitarcoach.app.core.tab.TabDocument
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,6 +40,8 @@ fun GpImportButton(onDocument: (TabDocument) -> Unit, onError: (String) -> Unit,
                     GpImporter.import(bytes)
                 }
                 onDocument(doc)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 onError(e.message ?: "GP 导入失败，请重试")
             } finally {

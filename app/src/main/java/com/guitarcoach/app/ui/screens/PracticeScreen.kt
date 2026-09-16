@@ -44,6 +44,12 @@ fun PracticeScreen(container: AppContainer) {
     val engine = remember { TunerEngine(CoroutineScope(Dispatchers.Default)) }
     val reading by engine.reading.collectAsState()
     var running by remember { mutableStateOf(false) }
+    var showCoach by remember { mutableStateOf(false) }
+
+    if (showCoach) {
+        PostureCoachScreen(container = container, onBack = { showCoach = false })
+        return
+    }
 
     var hasPermission by remember {
         mutableStateOf(
@@ -73,10 +79,27 @@ fun PracticeScreen(container: AppContainer) {
     ) {
         Text("练习室", style = MaterialTheme.typography.headlineSmall)
         Text(
-            "M0 已就绪：调音器。节拍器、伴奏、跟弹将在 M1/M2 加入。",
+            "调音器 · 节拍器 · 练习计时 · 视觉教练（实验）",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text("视觉教练（实验）", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "后置相机实时看手型：折腕/塌指/拇指位置即时警报，每两分钟给一条语音点评。支架斜放对准双手。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Button(onClick = { showCoach = true }) { Text("开始视觉教练") }
+            }
+        }
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(
