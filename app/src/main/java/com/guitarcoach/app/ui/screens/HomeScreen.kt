@@ -36,7 +36,7 @@ import com.guitarcoach.app.data.AppContainer
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(container: AppContainer) {
+fun HomeScreen(container: AppContainer, onNavigate: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     var settings by remember { mutableStateOf<AppSettings?>(null) }
     var editing by remember { mutableStateOf(false) }
@@ -60,6 +60,13 @@ fun HomeScreen(container: AppContainer) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+
+        // M7 快捷导航：直达三大高频功能
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { onNavigate("tabs") }) { Text("识谱 / 扒谱") }
+            OutlinedButton(onClick = { onNavigate("practice") }) { Text("练习室") }
+            OutlinedButton(onClick = { onNavigate("theory") }) { Text("乐理") }
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = { editing = true }) { Text("模型设置") }

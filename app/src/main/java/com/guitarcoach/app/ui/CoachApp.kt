@@ -67,7 +67,7 @@ fun CoachApp(container: AppContainer) {
             startDestination = "home",
             modifier = Modifier.padding(padding),
         ) {
-            composable("home") { HomeScreen(container) }
+            composable("home") { HomeScreen(container, onNavigate = { route -> navController.navigate(route) { launchSingleTop = true } }) }
             composable("practice") { PracticeScreen(container) }
             composable("tabs") { TabStudioScreen(container) }
             composable("theory") { TheoryScreen(container) }
