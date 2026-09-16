@@ -198,8 +198,15 @@ fun TabStudioScreen(container: AppContainer) {
                 }
             }
 
-            // M6 扒谱（实验）：抽 PCM 备转写；F602 转写引擎接入后生成谱面
-            TranscribeSection(container = container)
+            // M6 扒谱：端侧转写 → TabDocument 直进工作台
+            TranscribeSection(container = container, onDocument = { doc ->
+                extracted = null
+                imageBase64 = null
+                explainText = null
+                error = null
+                document = doc
+                showRender = true
+            })
         }
 
         // 展示（拍谱结果优先，其次文本谱/GP 结果）；F203 编辑回写；F202 谱面渲染与点按试听；F502 曲库

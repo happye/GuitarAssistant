@@ -18,9 +18,28 @@ import java.io.OutputStream
 class AudioPcmExtractor {
 
     data class Result(val durationSeconds: Double, val sampleRate: Int, val bytes: Long)
+    data class MonoResult(val pcm: ShortArray, val sampleRate: Int) {
+        val durationSeconds: Double get() = if (sampleRate == 0) 0.0 else pcm.size.toDouble() / sampleRate
+    }
 
     companion object {
         const val MAX_SECONDS = 30L * 60
+    }
+
+    /** 内存版（F602 转写路径）：抽+重采样到目标率，结果驻留数组（22050 mono 16bit 每分钟 ≈ 2.6MB，30 分钟上限内可控）。 */
+    fun extractToMono(fd: FileDescriptor, targetRate: Int = 22050): MonoResult {
+        val bytes = java.io.ByteArrayOutputStream(1 shl 20)
+        val r = extractToMono(fd, bytes, targetRate)
+        val data = bytes.toByteArray()
+        val pcm = ShortArray(data.size / 2)
+        var i = 0
+        var off = 0
+        while (i < pcm.size) {
+            pcm[i] = ((data[off].toInt() and 0xFF) or (data[off + 1].toInt() shl 8)).toShort()
+            i++
+            off += 2
+        }
+        return MonoResult(pcm, r.sampleRate)
     }
 
     fun extractToMono(fd: FileDescriptor, output: OutputStream, targetRate: Int = 16000): Result {

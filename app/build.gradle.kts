@@ -94,6 +94,8 @@ dependencies {
     implementation(libs.okhttp)
     // Guitar Pro 导入（F205）
     implementation(libs.alphatab)
+    // F602 端侧转写
+    implementation(libs.tensorflow.lite)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.datastore.preferences)

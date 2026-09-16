@@ -45,6 +45,11 @@
 - 风险窗口：任何人可造同签名 debug APK 冒充更新；当前个人项目场景可接受
 - 偿还条件：上 Google Play/对外发布前，换正式签名（不入库、密钥进本机 keychain），且 debug/正式签名明确区分
 
+## DEBT-008：F602 转写模型来源标注（2026-09-17 记录）
+
+- `app/src/main/assets/nmp.tflite`（204KB）= spotify/basic-pitch 0.4.0（Apache-2.0）PyPI wheel 内 `saved_models/icassp_2022/nmp.tflite`，ICASSP 2022 论文模型（"A Lightweight Instrument-Agnostic Model for Polyphonic Note Transcription"，arXiv:2203.09893）
+- 输入 [1,43844,1] float @22050Hz；输出 contours[172,264]/notes[172,88]/onsets[172,88]；2026-09-17 onnxruntime 本机实测 440Hz→midi69 精确命中 + 用户素材（Blur-Song 2）端到端 166 音符
+
 ## DEBT-007：谱面渲染升级 alphaTab 引擎（评估项，2026-09-17）
 
 - 现状：F202 v2 为自绘精修（参考 Songsterr/alphaTab 记谱惯例：品数落线/拍位比例展开/技巧记号/段落条），观感已可用
