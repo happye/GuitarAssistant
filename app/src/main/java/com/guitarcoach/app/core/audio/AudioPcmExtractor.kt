@@ -119,7 +119,7 @@ class AudioPcmExtractor {
                             }
                             val seconds = totalOutBytes / 2.0 / targetRate
                             if (seconds > maxSeconds) {
-                                throw IllegalArgumentException("文件太长（超过 30 分钟），扒谱 v1 只支持短素材")
+                                throw IllegalArgumentException("文件太长（超过 ${maxSeconds / 60} 分钟），请截取后再试")
                             }
                             codec.releaseOutputBuffer(outIdx, false)
                             if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) sawOutputEos = true

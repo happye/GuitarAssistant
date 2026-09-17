@@ -39,7 +39,13 @@ class TonePlayer {
         val myId = ++playbackId
         // 渲染（混合合成）在后台线程：长谱 100s+ 音频的 DoubleArray 合成不能占 UI 线程（监督员 P2）
         Thread {
-            val pcm = ToneRenderer.render(events, SAMPLE_RATE)
+            // render 可抛 IAE（谱面时长超 600s 防爆炸上限）——裸线程未捕获即进程崩溃（监督员 P1：崩点转移）
+            val pcm = try {
+                ToneRenderer.render(events, SAMPLE_RATE)
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "playSequence render failed", e)
+                return@Thread
+            }
             if (playbackId != myId) return@Thread // 渲染期间被新播放/停止取代
             startTrack(pcm, myId, reportProgress)
         }.apply { priority = Thread.NORM_PRIORITY + 1 }.start()
