@@ -50,3 +50,19 @@
 - 根因: 网络环境依赖本地代理开关；URL 级代理配置覆盖需用 `git -c "http.https://github.com.proxy=" push`（普通 -c http.proxy= 无效）
 - 修复: 双路重试（默认 push → 直连覆盖 push）；两路都挂时定时（每小时）重试并推送 tags，成功后撤任务（本会话已实践：深夜不通、清晨恢复，v0.2.8-v0.2.11 全部补推成功）
 - 验证命令: push 后 `git log origin/main..HEAD` 应为空
+
+## E007 转写推理 TFLite 输出张量 IndexOutOfBounds 类崩溃（用户真机）
+
+- 现象: Cannot copy from a TensorFlowLite tensor (StatefulPartitionedCall:2) with shape [1,172,88] to a Java object with shape [1,172,264]
+- 复现条件: 真机跑转写（onnx 实测的输出图序 ≠ TFLite 转换后图序，按 index 硬编码 0=264 通道必崩）
+- 根因: 跨运行时的多输出模型输出顺序不可跨平台假设（StatefulPartitionedCall 打包会重排）
+- 修复: 运行时按实际 shape 动态分配（264=contours 丢弃；两个 88 通道用激活总量自校准区分 note/onset——持续激活远大于稀疏触发）；帧数读实际值；形状异常时报全部输出 shape
+- 验证命令: 真机 music/ 素材走"扒谱→抽取→转写"全程（v0.2.21+）
+
+## E008 深思链流式输出满屏 nullnull（用户真机）
+
+- 现象: 今日练习单（deepseek-flash 深思链）生成结果显示 "nullnullnull…"；周复盘/音色向导同病
+- 复现条件: 任何走 deepText 链的流式 UI（思考阶段每 chunk 的 delta.content 为 JSON null）
+- 根因: SSE 解析 `as? JsonPrimitive` 放行了 JsonNull（子类），其 content 属性即字面 "null"；修复补丁的字符串过滤又误杀 jsonMode 合法 null token（E 系与 L019 同源，见 L019 双向错误记录）
+- 修复: `is JsonNull` 类型过滤（唯一精确解）+ streamWithFallback 空流视为失败换链（LlmFallback P1）
+- 验证命令: 空记录场景点「生成今日练习单」应输出可读练习建议而非 null

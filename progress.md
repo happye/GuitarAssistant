@@ -47,6 +47,14 @@
 - 监督员全程抓实错：TunerMeter 角度错位 90°（调音功能性错误）、TonePlayer stop 泄漏、gitignore music/ 无锚定吞 core/music 三源文件（P0，CI 必炸）等全部修复
 - **流程教训（L019/L020）**：gitignore 锚定语义、`&&` 硬链（连续两次编译错误误推后立规矩）
 - 验证: 124/124 单测全绿；每批 APK；发版 v0.2.12-v0.2.19（GitHub Releases 全部挂包）
+## 2026-09-17 - Session: 用户实测反馈轮（三 bug）+ 对抗性审查门禁确立
+
+- 用户实测 v0.2.20 反馈: 首页顶部跳转冗余+无法返回 / 转写推理 TFLite 张量形状崩溃 / 空记录练习单满屏 null / "每个 UI 界面应多模态预览测试"
+- Completed: ①SSE JsonNull 根修（as? JsonPrimitive 放行 JsonNull 子类致深思链满屏 null；首版补丁字符串过滤又误杀 jsonMode 合法 token——同点双向连错，L019）②首页跳转 Row+onNavigate 参数全清 ③TranscriptionEngine 输出张量按实际 shape 动态分配+激活总量自校准（TFLite 图序≠onnx，E007）④对抗性审查代理（P1×5 全修：SSE 误杀/空流换链/转写上限下沉/防爆炸 cap/麦克风占用防御）+高优 P2×4（Room 单例/光标复位/history 上限/删除确认）⑤监督员再抓崩点转移（P1）修复⑥多模态视觉自检基建（TabLayoutPreviewTest 纯 Kotlin PNG，布局正确性已亲验）
+- 教训: L019（JsonNull 双向错误）/L020（崩点转移必答"新失败路径被谁捕获"）/L021（对抗审查=发版前门禁，AGENTS.md 纪律 7）
+- 验证: 124/124 单测全绿；v0.2.21→v0.2.23 三连发（Releases 在线）
+- Next: 用户真机验证三 bug 修复 + music/ 素材全链路转写；F602 转写质量真机评估（0.5/0.06 参数下失真素材碎音属素材本质）
+
 ## 2026-09-17 - Session: 用户反馈五连修（签名/持久化/长音频/识谱观感与准确性）
 
 - 用户实测反馈（v0.2.7 APK）：①切界面丢状态 ②debug APK 签名不一致无法覆盖安装、版本不变 ③文档滞后 ④识谱不准+太丑（要求参考网上资源）⑤重要点要记忆；music/ 下两首测试 riff（Blur-Song 2、Led Zeppelin-Whole Lotta Love，后者 5:30 抽取报错）
