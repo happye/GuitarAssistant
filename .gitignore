@@ -14,6 +14,6 @@ build
 .kotlin/
 hs_err_pid*.log
 replay_pid*.log
-/music/
-music/
-guitartablature/
+/
+# 用户测试素材（版权音频/谱图，不入库）
+testdata/
