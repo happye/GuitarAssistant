@@ -12,11 +12,15 @@ import kotlin.math.sin
  */
 object ToneRenderer {
 
+    const val MAX_TOTAL_SECONDS = 600.0 // 10 分钟：病态数据防爆炸上限（正常谱远低于此）
+
     data class ToneEvent(val timeSec: Double, val midi: Int, val durationSec: Double = 0.6)
 
     fun render(events: List<ToneEvent>, sampleRate: Int = 44100): ShortArray {
         if (events.isEmpty()) return ShortArray(0)
         val total = events.maxOf { it.timeSec + it.durationSec }
+        // 采样数上限（对抗审查 P1：病态长行谱把 total 撑爆 → 巨量分配/Int 溢出，裸线程内未捕获即崩）
+        require(total <= MAX_TOTAL_SECONDS) { "音频时长超限（%.0fs > %ds），请检查谱面数据".format(total, MAX_TOTAL_SECONDS.toLong()) }
         val samples = (total * sampleRate).toInt().coerceAtLeast(1)
         val mix = DoubleArray(samples)
 

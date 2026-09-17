@@ -10,7 +10,8 @@ package com.guitarcoach.app.core.tab
  *    TabBar，beat = 段内列偏移/4（16 分网格）从 0 起算——与渲染端 4/4 口径严格对齐。
  * 3. 重复标记污染：「(x2)」「x2」「x02210」里的数字被当音符。v2 跳过 x 前缀数字。
  *
- * 已知限制：h/p/s/b 技巧记号不转 technique（目标音位置正确）；1 字符=16 分网格为近似拍位。
+ * 已知限制：h/p/s/b 技巧记号不转 technique（目标音位置正确）；1 字符=16 分网格为近似拍位；
+ * 单段列数上限 [MAX_SEGMENT_COLS]（防无竖线病态长行把 beat/播放时值撑爆，对抗审查 P1）。
  */
 object TextTabParser {
 
@@ -24,6 +25,9 @@ object TextTabParser {
 
     /** 数据区合法首字符：横线（最常见）、数字（空弦紧贴标签）、技巧字符、空格后接上述。 */
     private val dataStartRegex = Regex("^[-0-9hpbsbHBSPB~/\\\\ ]")
+
+    /** 单段（小节）最大列数：4/4 十六分网格满拍=64 列，512 列已是 8 小节病态值，防爆炸 cap。 */
+    private const val MAX_SEGMENT_COLS = 512
 
     fun parse(text: String): TabDocument {
         val blocks = splitIntoBlocks(text)
@@ -39,7 +43,8 @@ object TextTabParser {
             val boundaries = baseBody.withIndex().filter { it.value == '|' }.map { it.index } + listOf(baseBody.length)
             val notes = mutableListOf<NoteEvent>()
             var segStart = 0
-            for (segEnd in boundaries) {
+            for (segEndRaw in boundaries) {
+                val segEnd = minOf(segEndRaw, segStart + MAX_SEGMENT_COLS)
                 if (segEnd > segStart) {
                     val limit = minOf(segEnd, byString.values.maxOf { it.length })
                     for ((string, body) in byString) {

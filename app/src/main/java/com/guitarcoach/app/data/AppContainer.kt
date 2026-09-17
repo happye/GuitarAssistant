@@ -40,7 +40,9 @@ class AppContainer(context: Context) {
 
     // Room：对话历史（F107）与练习记录（F106）共用一个库
     private val appContext = context.applicationContext
-    private val database by lazy { AppDatabase.build(appContext) }
+    // Room 单例化到 companion（对抗审查 P2：容器随 Activity 重建，实例级 lazy 会堆积 SQLite 连接）
+    private val database: AppDatabase
+        get() = AppDatabase.shared(appContext)
     val chatRepository by lazy { ChatRepository(database) }
     val practiceRepository by lazy { PracticeRepository(database) }
 

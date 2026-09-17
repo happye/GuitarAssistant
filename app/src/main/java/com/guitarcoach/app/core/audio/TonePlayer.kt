@@ -96,7 +96,10 @@ class TonePlayer {
             } finally {
                 runCatching { track.stop() }
                 track.release()
-                if (current === track) current = null
+                if (current === track) {
+                    current = null
+                    _positionMs.value = -1L // 自然播完也复位，防播放光标卡在末尾（对抗审查 P2）
+                }
             }
         }.apply { priority = Thread.NORM_PRIORITY + 1 }.start()
     }

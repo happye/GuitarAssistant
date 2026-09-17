@@ -49,5 +49,12 @@ abstract class AppDatabase : RoomDatabase() {
             Room.databaseBuilder(context, AppDatabase::class.java, "coach.db")
                 .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
+
+        @Volatile
+        private var SHARED: AppDatabase? = null
+
+        /** 进程级单例（AppContainer 随 Activity 重建，Room 连接必须进程级共享——对抗审查 P2）。 */
+        fun shared(context: Context): AppDatabase =
+            SHARED ?: synchronized(this) { SHARED ?: build(context.applicationContext).also { SHARED = it } }
     }
 }

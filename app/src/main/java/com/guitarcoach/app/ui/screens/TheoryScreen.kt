@@ -82,6 +82,7 @@ fun TheoryScreen(container: AppContainer) {
                 .filter { it.role == "user" || it.role == "assistant" }
                 .filter { it.content.isNotBlank() }
                 .map { it.role to it.content }
+                .takeLast(40) // 上下文上限：20 轮对话，防长会话 token 失控（对抗审查 P2）
 
             var convId = currentId
             if (convId == null) {

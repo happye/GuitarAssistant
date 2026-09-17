@@ -25,7 +25,10 @@ object LlmFallback {
                     emitted = true
                     emit(delta)
                 }
-                return@flow
+                // 空流=失败（对抗审查 P1）：深思链全 delta 被过滤时零发射"正常完成"，
+                // 若当成功则不换链且 UI 永远"…"——视为该链失败走降级
+                if (emitted) return@flow
+                lastError = LlmException("模型返回了空回复")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

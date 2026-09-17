@@ -70,7 +70,23 @@ private fun SongLibraryDialog(
     var searchText by rememberSaveable { mutableStateOf("") }
     var saveTitle by rememberSaveable { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
+    var deleteTarget by remember { mutableStateOf<Long?>(null) } // 删除确认（对抗审查 P2：误触不可逆）
     val dateFormat = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
+
+    deleteTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text("删除曲目？") },
+            text = { Text("将从曲库中永久删除该曲目及其进度标记。") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { container.songRepository.delete(target) }
+                    deleteTarget = null
+                }) { Text("删除") }
+            },
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("取消") } },
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -144,7 +160,7 @@ private fun SongLibraryDialog(
                                 }
                                 scope.launch { container.songRepository.updateProgress(entry.id, next) }
                             },
-                            onDelete = { scope.launch { container.songRepository.delete(entry.id) } },
+                            onDelete = { deleteTarget = entry.id },
                         )
                     }
                 }

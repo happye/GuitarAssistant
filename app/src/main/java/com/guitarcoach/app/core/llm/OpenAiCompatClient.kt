@@ -93,9 +93,10 @@ class OpenAiCompatClient(
                     ?.jsonObject?.get("delta")?.jsonObject
                     ?.get("content") as? JsonPrimitive ?: continue
                 // 思考模型（deepseek-flash）思考阶段 content 为 JSON null——JsonNull 是 JsonPrimitive
-                // 子类且 content 属性就是字面 "null"，不过滤会往 UI 吐满屏 "null"（用户实测 bug）
+                // 子类且 content 属性即字面 "null"。只按类型过滤：字符串比较会误杀 jsonMode 下
+                // 模型合法输出的 null 值 token（如 {"issues":null}），导致 JSON 损坏（对抗审查 P1）
                 if (delta is JsonNull) continue
-                if (delta.content.isNotEmpty() && delta.content != "null") emit(delta.content)
+                if (delta.content.isNotEmpty()) emit(delta.content)
             }
         }
     }.flowOn(Dispatchers.IO)

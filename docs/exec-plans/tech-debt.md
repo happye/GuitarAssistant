@@ -55,3 +55,15 @@
 - 现状：F202 v2 为自绘精修（参考 Songsterr/alphaTab 记谱惯例：品数落线/拍位比例展开/技巧记号/段落条），观感已可用
 - 升级路径：alphaTab 1.8.4 完整渲染需要 AlphaSkia 原生库（额外 .so，APK +10~20MB）+ Bravura.otf 字体入 assets + AlphaSkiaAndroid 初始化链；已实探 classes.jar/sources 确认可行性，未引入
 - 偿还条件：用户对自绘观感仍不满意，或需要五线谱双谱/复杂拍号/回放光标时立项
+
+## DEBT-008：对抗性审查 P2 余项（2026-09-17，来源 .learnings/adversarial-review-2026-09-17b.md）
+
+本轮已修：P1×5 全部 + P2 高优×4（Room 单例/positionMs 复位/history 上限/曲库删除确认）。余项按发现顺序：
+
+1. TranscriptionEngine：rank<3 输出张量 AIOOBE 防呆；88 通道头缺失时静默空谱（防呆不对称）；frames=-1 动态 shape 防御；note/onset 头逐窗自校准在 onset 密集段可能翻转产生碎假音符（考虑跨窗投票）；输出数组每窗重复分配 GC churn
+2. NoteDecoder FRAME_RATE 硬编码 hop（与 constants 对齐检查）
+3. TonePlayer：整段播放不可取消（转写/长播场景需 cancel 通道）；旋转后双引擎并发防呆
+4. LLM：`obj["error"]?.let` 未防显式 `"error":null` chunk；阻塞读上取消穿透最长滞后 120s（L011 软违例）
+5. rememberSaveable：TabDocument 整体进 Bundle 的 binder 1MB 风险（长谱 JSON 几十 KB，叠加逼近阈值）——考虑迁移 DataStore
+6. jsonSaver restore 失败 null 塞非空类型洞（当前全部可空 UI 态，暂无实害）
+7. 练习计时放弃无确认

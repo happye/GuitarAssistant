@@ -27,27 +27,25 @@ class AudioPcmExtractor {
         const val MAX_SECONDS_IN_MEMORY = 10L * 60 // 内存路径（转写）上限
     }
 
-    /** 内存版（F602 转写路径）：抽+重采样到目标率，结果驻留数组（22050 mono 16bit 每分钟 ≈ 2.6MB，30 分钟上限内可控）。 */
+    /** 内存版（F602 转写路径）：抽+重采样到目标率。上限 10 分钟在解码循环内即检查（对抗审查 P1：
+     *  旧版全量解码完才查——10-30 分钟素材先驻留 ~240MB 再被拒，OOM 而非友好报错）。 */
     fun extractToMono(fd: FileDescriptor, targetRate: Int = 22050): MonoResult {
         val bytes = java.io.ByteArrayOutputStream(1 shl 20)
-        val r = extractToMono(fd, bytes, targetRate)
-        // 内存路径上限独立 10 分钟（监督员 P2：30 分钟素材驻留数组峰值 ≈240MB，OOM 边缘；30 分钟口径只适用落盘路径）
-        if (r.durationSeconds > MAX_SECONDS_IN_MEMORY) {
-            throw IllegalArgumentException("文件太长（超过 10 分钟）：转写走内存路径，请截取 10 分钟内的素材")
+        return extractToMono(fd, bytes, targetRate, maxSeconds = MAX_SECONDS_IN_MEMORY).let { r ->
+            val data = bytes.toByteArray()
+            val pcm = ShortArray(data.size / 2)
+            var i = 0
+            var off = 0
+            while (i < pcm.size) {
+                pcm[i] = ((data[off].toInt() and 0xFF) or (data[off + 1].toInt() shl 8)).toShort()
+                i++
+                off += 2
+            }
+            MonoResult(pcm, r.sampleRate)
         }
-        val data = bytes.toByteArray()
-        val pcm = ShortArray(data.size / 2)
-        var i = 0
-        var off = 0
-        while (i < pcm.size) {
-            pcm[i] = ((data[off].toInt() and 0xFF) or (data[off + 1].toInt() shl 8)).toShort()
-            i++
-            off += 2
-        }
-        return MonoResult(pcm, r.sampleRate)
     }
 
-    fun extractToMono(fd: FileDescriptor, output: OutputStream, targetRate: Int = 16000): Result {
+    fun extractToMono(fd: FileDescriptor, output: OutputStream, targetRate: Int = 16000, maxSeconds: Long = MAX_SECONDS): Result {
         val extractor = MediaExtractor()
         try {
             extractor.setDataSource(fd)
@@ -120,7 +118,7 @@ class AudioPcmExtractor {
                                 }
                             }
                             val seconds = totalOutBytes / 2.0 / targetRate
-                            if (seconds > MAX_SECONDS) {
+                            if (seconds > maxSeconds) {
                                 throw IllegalArgumentException("文件太长（超过 30 分钟），扒谱 v1 只支持短素材")
                             }
                             codec.releaseOutputBuffer(outIdx, false)
