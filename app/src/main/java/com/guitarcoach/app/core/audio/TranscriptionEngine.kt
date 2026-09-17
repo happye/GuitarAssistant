@@ -12,9 +12,9 @@ import java.nio.MappedByteBuffer
  * PCM（mono 16bit）→ 重采样 22050 → 2s 窗（43844 样本）顺序推理 →
  * note head 激活矩阵 → [NoteDecoder] 纯函数解码 → MIDI 事件 → [MidiTabConverter] 弦品分配。
  *
- * 输出张量顺序（与 onnx 同图序，2026-09-17 onnxruntime 实测）：
- *   index 0 = contours [1,172,264]，index 1 = notes [1,172,88]，index 2 = onsets [1,172,88]。
- * notes 头已实测精确命中 midi 69（440Hz 正弦）；运行时再用激活总量双保险自校准。
+ * 输出张量不按 index 假设（真机实测 TFLite 图序与 onnx 不同，硬编码崩）——运行时按实际
+ *   shape 动态分配：264 通道=contours，88 通道的两个用激活总量自校准区分 note/onset 头。
+ * note 头已实测精确命中 midi 69（440Hz 正弦）。
  * 推理仅 Android 运行时可用；解码/后处理全在纯函数层（JVM 单测覆盖）。
  */
 class TranscriptionEngine(context: Context) : AutoCloseable {
@@ -23,7 +23,7 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
         const val MODEL_ASSET = "nmp.tflite"
         const val TARGET_RATE = 22050
         const val WINDOW_SAMPLES = 43844 // 模型固定输入长度（2s @22050 去边缘）
-        const val FRAMES_PER_WIN = 172   // 43844/256 hop ≈ 171.3 → 172（实测确认）
+        // 帧数不再硬编码：从输出张量实际 shape 读取（模型/图序差异防呆）
         const val N_PITCHES = 88
         const val N_CONTOURS = 264
     }
@@ -50,10 +50,6 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
 
         val events = mutableListOf<NoteDecoder.NoteEventMidi>()
         val inputBuffer = ByteBuffer.allocateDirect(4 * WINDOW_SAMPLES).order(ByteOrder.nativeOrder())
-        val contours = Array(1) { Array(FRAMES_PER_WIN) { FloatArray(N_CONTOURS) } }
-        val notes = Array(1) { Array(FRAMES_PER_WIN) { FloatArray(N_PITCHES) } }
-        val onsets = Array(1) { Array(FRAMES_PER_WIN) { FloatArray(N_PITCHES) } }
-        val outputs = mapOf(0 to contours, 1 to notes, 2 to onsets)
 
         val totalWindows = ((wave.size + WINDOW_SAMPLES - 1) / WINDOW_SAMPLES).coerceAtLeast(1)
         var winStart = 0
@@ -65,14 +61,34 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
                 inputBuffer.putFloat(if (i < len) wave[winStart + i] else 0f) // 尾窗零填充
             }
             inputBuffer.rewind()
+
+            // 输出按实际 shape 动态分配（用户真机实测：TFLite 输出图序与 onnx 不同，按 index 硬编码崩）：
+            // 264 通道 = contours（解码不用），88 通道的两个 = note/onset（语义序不可知，
+            // 用激活总量自校准区分：持续激活的 note 头总量远大于稀疏 onset 头）。帧数也读实际值。
+            val outSpecs = (0 until interpreter.outputTensorCount).map { i ->
+                val t = interpreter.getOutputTensor(i)
+                Triple(i, t.shape()[1], t.shape()[2]) // (index, frames, channels)
+            }
+            val spec88 = outSpecs.filter { it.third == N_PITCHES }
+            val spec264 = outSpecs.firstOrNull { it.third == N_CONTOURS }
+                ?: throw IllegalArgumentException(
+                    "转写推理失败：输出张量形状异常 " +
+                        outSpecs.joinToString { "(#${it.first}: ${it.second}x${it.third})" } +
+                        "——模型版本可能不匹配"
+                )
+            val frames = spec264.second
+            val contours = Array(1) { Array(frames) { FloatArray(N_CONTOURS) } }
+            val headA = Array(1) { Array(frames) { FloatArray(N_PITCHES) } }
+            val headB = Array(1) { Array(frames) { FloatArray(N_PITCHES) } }
+            val outputs = mutableMapOf<Int, Any>(spec264.first to contours)
+            spec88.getOrNull(0)?.let { outputs[it.first] = headA }
+            spec88.getOrNull(1)?.let { outputs[it.first] = headB }
+
             runCatching { interpreter.runForMultipleInputsOutputs(arrayOf(inputBuffer), outputs) }
                 .onFailure { throw IllegalArgumentException("转写推理失败：${it.message}", it) }
 
-            val head = if (total(notes[0]) >= total(onsets[0])) {
-                notes[0] // 双保险：激活总量大者为 notes（持续激活 > 稀疏 onset）
-            } else {
-                onsets[0]
-            }
+            // 两个 88 通道头按激活总量挑大的当 note 头（notes 持续激活 > onsets 稀疏触发）
+            val head = if (total(headA[0]) >= total(headB[0])) headA[0] else headB[0]
             events += NoteDecoder.decode(head, winStart / TARGET_RATE.toDouble())
 
             winStart += WINDOW_SAMPLES

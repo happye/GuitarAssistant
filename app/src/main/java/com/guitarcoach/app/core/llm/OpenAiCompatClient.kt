@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
@@ -91,7 +92,10 @@ class OpenAiCompatClient(
                 val delta = obj["choices"]?.jsonArray?.firstOrNull()
                     ?.jsonObject?.get("delta")?.jsonObject
                     ?.get("content") as? JsonPrimitive ?: continue
-                if (delta.content.isNotEmpty()) emit(delta.content)
+                // 思考模型（deepseek-flash）思考阶段 content 为 JSON null——JsonNull 是 JsonPrimitive
+                // 子类且 content 属性就是字面 "null"，不过滤会往 UI 吐满屏 "null"（用户实测 bug）
+                if (delta is JsonNull) continue
+                if (delta.content.isNotEmpty() && delta.content != "null") emit(delta.content)
             }
         }
     }.flowOn(Dispatchers.IO)
