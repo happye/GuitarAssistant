@@ -96,9 +96,10 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
             runCatching { interpreter.runForMultipleInputsOutputs(arrayOf(inputBuffer), outputs) }
                 .onFailure { throw IllegalArgumentException("转写推理失败：${it.message}", it) }
 
-            // 两个 88 通道头按激活总量挑大的当 note 头（notes 持续激活 > onsets 稀疏触发）
-            val head = if (total(headA[0]) >= total(headB[0])) headA[0] else headB[0]
-            events += NoteDecoder.decode(head, winStart / TARGET_RATE.toDouble())
+            // 两个 88 通道头都要（官方算法 frames+onsets 配合）：激活总量大者=frames（持续激活），
+            // 小者=onsets（稀疏触发）；顺序 TFLite 不可知，用总量自校准
+            val (headFrames, headOnsets) = if (total(headA[0]) >= total(headB[0])) headA[0] to headB[0] else headB[0] to headA[0]
+            events += NoteDecoder.decode(headFrames, headOnsets, winStart / TARGET_RATE.toDouble())
 
             winStart += WINDOW_SAMPLES
             winIndex++
@@ -112,7 +113,7 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
             .filter { it.midi in MIDI_RANGE }
         val skipped = events.size - inRange.size
         val notes = inRange
-            .map { MidiTabConverter.MidiNote(it.midi, it.timeSec, it.durationSec) }
+            .map { MidiTabConverter.MidiNote(it.midi, it.timeSec, it.durationSec, amplitude = it.amplitude.toDouble()) }
             .sortedBy { it.timeSec }
         return TranscriptionResult(notes, skipped)
     }

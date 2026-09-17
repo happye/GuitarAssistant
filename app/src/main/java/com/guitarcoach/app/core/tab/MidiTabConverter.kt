@@ -11,9 +11,9 @@ package com.guitarcoach.app.core.tab
  */
 object MidiTabConverter {
 
-    data class MidiNote(val midi: Int, val timeSec: Double, val durationSec: Double = 0.5)
+    data class MidiNote(val midi: Int, val timeSec: Double, val durationSec: Double = 0.5, val amplitude: Double = 1.0)
 
-    data class PlacedNote(val string: Int, val fret: Int, val beat: Double, val durationBeats: Double)
+    data class PlacedNote(val string: Int, val fret: Int, val beat: Double, val durationBeats: Double, val amplitude: Double = 1.0)
 
     /** 拍位量化：吸附到 grid（默认 1/4 拍）。 */
     fun quantize(beat: Double, grid: Double = 0.25): Double =
@@ -74,6 +74,7 @@ object MidiTabConverter {
                 fret = c.fret,
                 beat = quantize(n.timeSec / secPerBeat),
                 durationBeats = (n.durationSec / secPerBeat),
+                amplitude = n.amplitude,
             )
         }
     }
