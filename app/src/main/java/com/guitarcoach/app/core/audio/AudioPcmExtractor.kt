@@ -29,9 +29,9 @@ class AudioPcmExtractor {
 
     /** 内存版（F602 转写路径）：抽+重采样到目标率。上限 10 分钟在解码循环内即检查（对抗审查 P1：
      *  旧版全量解码完才查——10-30 分钟素材先驻留 ~240MB 再被拒，OOM 而非友好报错）。 */
-    fun extractToMono(fd: FileDescriptor, targetRate: Int = 22050): MonoResult {
+    fun extractToMono(fd: FileDescriptor, targetRate: Int = 22050, enhance: Boolean = true): MonoResult {
         val bytes = java.io.ByteArrayOutputStream(1 shl 20)
-        return extractToMono(fd, bytes, targetRate, maxSeconds = MAX_SECONDS_IN_MEMORY).let { r ->
+        return extractToMono(fd, bytes, targetRate, maxSeconds = MAX_SECONDS_IN_MEMORY, enhance = enhance).let { r ->
             val data = bytes.toByteArray()
             val pcm = ShortArray(data.size / 2)
             var i = 0
@@ -45,7 +45,7 @@ class AudioPcmExtractor {
         }
     }
 
-    fun extractToMono(fd: FileDescriptor, output: OutputStream, targetRate: Int = 16000, maxSeconds: Long = MAX_SECONDS): Result {
+    fun extractToMono(fd: FileDescriptor, output: OutputStream, targetRate: Int = 16000, maxSeconds: Long = MAX_SECONDS, enhance: Boolean = true): Result {
         val extractor = MediaExtractor()
         try {
             extractor.setDataSource(fd)
@@ -71,6 +71,8 @@ class AudioPcmExtractor {
             var inputSampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
             var inputChannels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
             val resampler = StreamingResampler(inputSampleRate, inputChannels, targetRate)
+            // 吉他聚焦预处理（用户实测混音转写烂后引入）：中央消除+带通，须在混缩前的立体声域做
+            val focus = if (enhance && inputChannels >= 2) StereoFocusProcessor(inputSampleRate) else null
 
             val scratch = ByteArray(64 * 1024)
             var totalOutBytes = 0L
@@ -101,7 +103,7 @@ class AudioPcmExtractor {
                             val shortBuf = outBuf.order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
                             val samples = ShortArray(shortBuf.remaining())
                             shortBuf.get(samples)
-                            resampler.feed(samples) { outChunk ->
+                            resampler.feed(focus?.process(samples, inputChannels) ?: samples) { outChunk ->
                                 // ShortArray → LE bytes → 直写文件（复用 scratch，避免每块分配）
                                 var i = 0
                                 val n = outChunk.size

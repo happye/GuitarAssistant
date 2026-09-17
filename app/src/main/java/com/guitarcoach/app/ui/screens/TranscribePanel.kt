@@ -47,6 +47,7 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
     var status by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var bpmText by remember { mutableStateOf("120") }
+    var enhance by remember { mutableStateOf(true) } // 吉他聚焦预处理：中央消除+带通（混音素材建议开）
     var truncated by remember { mutableStateOf(0) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -58,7 +59,7 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
             try {
                 val (doc, skippedOutOfRange) = withContext(Dispatchers.IO) {
                     val pcm = context.contentResolver.openFileDescriptor(uri, "r")?.use {
-                        AudioPcmExtractor().extractToMono(it.fileDescriptor, targetRate = 22050)
+                        AudioPcmExtractor().extractToMono(it.fileDescriptor, targetRate = 22050, enhance = enhance)
                     } ?: throw IllegalArgumentException("文件读取失败，请重试")
                     // F706 BPM 自动检测：检出即预填并采用；用户手输值优先生效
                     val bpm = if (bpmText.isBlank()) {
@@ -113,6 +114,16 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { launcher.launch(arrayOf("*/*")) }, enabled = !working) {
                     Text(if (working) (progressText ?: "处理中…") else "选音频转写")
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    androidx.compose.material3.Checkbox(checked = enhance, onCheckedChange = { enhance = it })
+                    Text(
+                        "吉他聚焦（去人声/压鼓，混音素材建议开）",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 }
                 OutlinedTextField(
                     value = bpmText,
