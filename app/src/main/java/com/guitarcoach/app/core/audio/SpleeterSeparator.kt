@@ -49,74 +49,142 @@ class SpleeterSeparator(context: Context) : AutoCloseable {
      * 分离主入口。输入立体声交错 PCM（44100Hz 由调用方重采样保证）；长度 pad 到 CHUNK_FRAMES 倍数。
      * 输出两个 stem（各声道已混缩为单声道交错？——输出为每 stem 的 (L+R)/2 单声道，长度 = 原始样本数）。
      */
-    fun separate(interleavedStereo: FloatArray, inputSampleRate: Int): Result {
-        // 输入重采样到 44100（模型域）
-        val src = if (inputSampleRate != SAMPLE_RATE) {
-            val mono = PcmResampler.toMonoRate(
-                interleavedStereo.map { (it * 32767).toInt().toShort() }.toShortArray(),
-                inputSampleRate, 1, SAMPLE_RATE,
-            )
-            FloatArray(mono.size) { mono[it] / 32768f }
+    /** 每块样本数：512 帧 × hop + 窗余量（STFT 需要 (512-1)*hop + win 个样本产 512 帧）。 */
+    val CHUNK_SAMPLES = (CHUNK_FRAMES - 1) * HOP + N_FFT
+
+    /**
+     * 分离主入口（分块流式）：每 23.2s 音频独立 STFT→双模型→mask→iSTFT，
+     * 峰值内存 ~50MB——整曲一次性处理的分配累计 700MB+ 必然 OOM 闪退（用户实测根修）。
+     * 输入立体声交错 PCM（任意采样率，内部重采样到模型域 44100）。
+     * onProgress 0..1 按块回调。
+     */
+    fun separate(
+        interleavedStereo: FloatArray,
+        inputSampleRate: Int,
+        onProgress: (Float) -> Unit = {},
+    ): Result {
+        // 重采样到模型域 44100（立体声保持：L/R 各自独立重采样）
+        val src: FloatArray = if (inputSampleRate != SAMPLE_RATE) {
+            val frames = interleavedStereo.size / 2
+            val l = FloatArray(frames) { interleavedStereo[it * 2] }
+            val r = FloatArray(frames) { interleavedStereo[it * 2 + 1] }
+            val lS = PcmResampler.toMonoRate(floatToShort(l), inputSampleRate, 1, SAMPLE_RATE)
+            val rS = PcmResampler.toMonoRate(floatToShort(r), inputSampleRate, 1, SAMPLE_RATE)
+            val n = minOf(lS.size, rS.size)
+            FloatArray(n * 2) { i -> if (i % 2 == 0) lS[i / 2] / 32768f else rS[i / 2] / 32768f }
         } else {
             interleavedStereo
         }
 
-        // STFT（双声道各一）
         val half = src.size / 2
         val l = FloatArray(half) { src[it * 2] }
         val r = FloatArray(half) { src[it * 2 + 1] }
-        val stftL = Stft.stft(l)
-        val stftR = Stft.stft(r)
 
-        // pad 帧数到 512 倍数
-        var numFrames = stftL.numFrames
-        val pad = (CHUNK_FRAMES - numFrames % CHUNK_FRAMES).let { if (it == CHUNK_FRAMES) 0 else it }
-        if (pad > 0) numFrames += pad
-        require(numFrames % CHUNK_FRAMES == 0)
-        val chunks = numFrames / CHUNK_FRAMES
+        val totalFrames = Stft.numFramesFor(half)
+        if (totalFrames == 0) throw IllegalArgumentException("音频太短，无法分离")
+        val chunks = (totalFrames + CHUNK_FRAMES - 1) / CHUNK_FRAMES
 
-        // 幅度谱输入 [2, chunks, 512, 1024]（实部谱即幅度近似——sherpa 实现直接用 sqrt(real²+imag²) 填充）
-        val x = FloatArray(2 * numFrames * BINS)
-        copySpec(stftL, x, 0, numFrames, pad)
-        copySpec(stftR, x, 1, numFrames, pad)
+        val accMono = FloatArray(half)
+        val vocMono = FloatArray(half)
 
-        val shape = longArrayOf(2, chunks.toLong(), CHUNK_FRAMES.toLong(), BINS.toLong())
-        val xTensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(x), shape)
+        for (chunkIdx in 0 until chunks) {
+            val frameStart = chunkIdx * CHUNK_FRAMES
+            val frameCount = minOf(CHUNK_FRAMES, totalFrames - frameStart)
+            val sampleStart = frameStart * HOP
+            val sampleSpan = (frameCount - 1) * HOP + N_FFT
 
-        val vocalsSpec = FloatArray(x.size)
-        val accompanimentSpec = FloatArray(x.size)
+            val chunkL = FloatArray(sampleSpan) { i -> l.getOrElse(sampleStart + i) { 0f } }
+            val chunkR = FloatArray(sampleSpan) { i -> r.getOrElse(sampleStart + i) { 0f } }
+            val stftL = Stft.stft(chunkL)
+            val stftR = Stft.stft(chunkR)
+            val frames = stftL.numFrames.coerceAtMost(frameCount) // 尾块真实帧数可能少于 512
 
-        val inputName = vocalsSession.inputNames.first()
-        val outputName = vocalsSession.outputNames.first()
-        vocalsSession.run(mapOf(inputName to xTensor)).use { res ->
-            val t = res.get(0) as OnnxTensor
-            t.floatBuffer?.let { fb -> fb.get(vocalsSpec, 0, minOf(fb.remaining(), vocalsSpec.size)) }
+            // 幅度谱输入 [2, 1, 512, 1024]（pad 帧复制最后真实帧）
+            val x = FloatArray(2 * CHUNK_FRAMES * BINS)
+            copySpecPadded(stftL, x, 0, frames)
+            copySpecPadded(stftR, x, 1, frames)
+            val shape = longArrayOf(2, 1, CHUNK_FRAMES.toLong(), BINS.toLong())
+
+            val xTensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(x), shape)
+            val vocalsSpec = FloatArray(x.size)
+            val accSpec = FloatArray(x.size)
+            val inputName = vocalsSession.inputNames.first()
+            val outputName = vocalsSession.outputNames.first()
+            vocalsSession.run(mapOf(inputName to xTensor)).use { res ->
+                val t = res.get(0) as OnnxTensor
+                t.floatBuffer?.let { fb -> fb.get(vocalsSpec, 0, minOf(fb.remaining(), vocalsSpec.size)) }
+            }
+            val inputName2 = accompanimentSession.inputNames.first()
+            val outputName2 = accompanimentSession.outputNames.first()
+            accompanimentSession.run(mapOf(inputName2 to xTensor)).use { res ->
+                val t = res.get(0) as OnnxTensor
+                t.floatBuffer?.let { fb -> fb.get(accSpec, 0, minOf(fb.remaining(), accSpec.size)) }
+            }
+            xTensor.close()
+
+            // soft mask（官方平方比归一）
+            val accMask = FloatArray(x.size)
+            for (i in x.indices) {
+                val v = vocalsSpec[i] * vocalsSpec[i]
+                val a = accSpec[i] * accSpec[i]
+                accMask[i] = ((a + EPS / 2) / (v + a + EPS))
+            }
+
+            // mask×复数谱 → iSTFT（只取本块前 frameCount*HOP 样本写输出，防尾部窗余量重复累加）
+            val accChunk = istftMeanOfMask(accMask, stftL, stftR, frames)
+            val vocMask = FloatArray(accMask.size) { 1f - accMask[it] }
+            val vocChunk = istftMeanOfMask(vocMask, stftL, stftR, frames)
+            val write = minOf(frameCount * HOP, accChunk.size)
+            for (i in 0 until write) {
+                val gi = sampleStart + i
+                if (gi < half) {
+                    accMono[gi] = accChunk[i]
+                    vocMono[gi] = vocChunk[i]
+                }
+            }
+            onProgress(((chunkIdx + 1).toFloat() / chunks).coerceIn(0f, 1f))
         }
-        xTensor.close()
-        val xTensor2 = OnnxTensor.createTensor(env, FloatBuffer.wrap(x), shape)
-        val inputName2 = accompanimentSession.inputNames.first()
-        val outputName2 = accompanimentSession.outputNames.first()
-        accompanimentSession.run(mapOf(inputName2 to xTensor2)).use { res ->
-            val t = res.get(0) as OnnxTensor
-            t.floatBuffer?.let { fb -> fb.get(accompanimentSpec, 0, minOf(fb.remaining(), accompanimentSpec.size)) }
-        }
-        xTensor2.close()
 
-        // soft mask（官方平方比归一）
-        val vocalsMask = FloatArray(x.size)
-        val accMask = FloatArray(x.size)
-        for (i in x.indices) {
-            val v = vocalsSpec[i] * vocalsSpec[i]
-            val a = accompanimentSpec[i] * accompanimentSpec[i]
-            val sum = v + a + EPS
-            vocalsMask[i] = ((v + EPS / 2) / sum)
-            accMask[i] = ((a + EPS / 2) / sum)
-        }
-
-        // mask × 原 STFT 复数谱 → iSTFT → 每 stem 单声道（双声道取均值）
-        val accMono = istftStereoMean(accMask, stftL, stftR, numFrames, pad)
-        val vocMono = istftStereoMean(vocalsMask, stftL, stftR, numFrames, pad)
         return Result(accMono, vocMono, SAMPLE_RATE)
+    }
+
+    private fun istftMeanOfMask(mask: FloatArray, stftL: Stft.StftResult, stftR: Stft.StftResult, frames: Int): FloatArray {
+        val maskedLReal = FloatArray(stftL.real.size)
+        val maskedLImag = FloatArray(stftL.real.size)
+        val maskedRReal = FloatArray(stftR.real.size)
+        val maskedRImag = FloatArray(stftR.real.size)
+        val chanStride = CHUNK_FRAMES * BINS
+        for (t in 0 until frames) {
+            for (b in 0 until BINS) {
+                val m = mask[t * BINS + b]
+                maskedLReal[t * BINS + b] = stftL.real[t * BINS + b] * m
+                maskedLImag[t * BINS + b] = stftL.imag[t * BINS + b] * m
+                val mR = mask[chanStride + t * BINS + b]
+                maskedRReal[t * BINS + b] = stftR.real[t * BINS + b] * mR
+                maskedRImag[t * BINS + b] = stftR.imag[t * BINS + b] * mR
+            }
+        }
+        val outL = Stft.istft(maskedLReal, maskedLImag, frames)
+        val outR = Stft.istft(maskedRReal, maskedRImag, frames)
+        return FloatArray(minOf(outL.size, outR.size)) { (outL[it] + outR[it]) / 2f }
+    }
+
+    private fun floatToShort(f: FloatArray): ShortArray =
+        FloatArray(f.size) { f[it] }.let { arr ->
+            ShortArray(arr.size) { i -> (arr[i] * 32767).toInt().coerceIn(-32768, 32767).toShort() }
+        }
+
+    private fun copySpecPadded(stft: Stft.StftResult, x: FloatArray, channel: Int, realFrames: Int) {
+        // 模型输入是幅度谱 x = sqrt(real²+imag²)；块内帧数固定 512，pad 帧复制最后真实帧
+        val chanOff = channel * CHUNK_FRAMES * BINS
+        for (t in 0 until CHUNK_FRAMES) {
+            val src = t.coerceAtMost(realFrames - 1)
+            for (b in 0 until BINS) {
+                val r = stft.real[src * BINS + b].toDouble()
+                val i = stft.imag[src * BINS + b].toDouble()
+                x[chanOff + t * BINS + b] = kotlin.math.sqrt(r * r + i * i).toFloat()
+            }
+        }
     }
 
     private fun copySpec(stft: Stft.StftResult, x: FloatArray, channel: Int, numFrames: Int, pad: Int) {

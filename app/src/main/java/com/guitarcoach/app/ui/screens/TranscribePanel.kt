@@ -66,7 +66,10 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                             val stereo = AudioPcmExtractor().extractStereoFloat(fd.fileDescriptor)
                             val separator = SpleeterSeparator(context)
                             try {
-                                val sep = separator.separate(stereo.samples, stereo.sampleRate)
+                                progressText = "分离人声/鼓中…"
+                                val sep = separator.separate(stereo.samples, stereo.sampleRate) { p ->
+                                    progressText = "分离人声/鼓中… ${(p * 100).toInt()}%"
+                                }
                                 // 伴奏轨（已去人声/鼓）→ ShortArray 供转写/测速
                                 val shortPcm = ShortArray(sep.accompaniment.size) { i ->
                                     (sep.accompaniment[i] * 32767).toInt().coerceIn(-32768, 32767).toShort()
