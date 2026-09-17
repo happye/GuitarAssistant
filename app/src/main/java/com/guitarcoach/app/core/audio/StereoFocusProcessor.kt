@@ -45,13 +45,13 @@ class StereoFocusProcessor(sampleRate: Int, private val strength: Double = 0.8) 
         }
 
         companion object {
-            /** RBJ cookbook 高通。 */
+            /** RBJ cookbook 高通：b0 = a(1+cw)/2, b1 = -a(1+cw), b2 = a(1+cw)/2（此前系数写错成直通形状）。 */
             fun highpass(sampleRate: Int, freq: Double): Biquad {
                 val w = 2 * PI * freq / sampleRate
                 val cw = cos(w)
                 val alpha = sin(w) / (2 * sqrt(2.0) / 2) // Q = 0.707
                 val a = 1 / (1 + alpha)
-                return Biquad(a, -2 * a * cw, a * (1 - alpha), 1 + alpha, -2 * cw, 1 - alpha)
+                return Biquad(a * (1 + cw) / 2, -a * (1 + cw), a * (1 + cw) / 2, 1 + alpha, -2 * cw, 1 - alpha)
             }
 
             /** RBJ cookbook 低通。 */

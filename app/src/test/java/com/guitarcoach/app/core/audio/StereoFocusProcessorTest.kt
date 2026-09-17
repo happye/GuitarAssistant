@@ -68,7 +68,7 @@ class StereoFocusProcessorTest {
     @Test
     fun `单声道降级路径仅带通不崩`() {
         val proc = StereoFocusProcessor(22050)
-        val mono = ShortArray(4410) { i -> (sin(2 * PI * 200 * i / 22050) * 12000).toShort() }
+        val mono = ShortArray(4410) { i -> (sin(2 * PI * 200 * i / 22050) * 12000).toInt().toShort() }
         val out = proc.process(mono, 1)
         assertEquals(mono.size, out.size)
     }
