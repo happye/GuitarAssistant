@@ -77,6 +77,8 @@
 - 验证: 每特性先本地 JUnitCore（**产品化为 scripts/run-tests-local.sh**，L013：临时目录必须成对刷新）后 CI 绿；单测从 5 → 73 个
 - 监督员: 常驻 subagent 本轮抓 6 个实错全部修复——P1×3（FingeringSolver 全空弦槽崩溃、TabEditPanel rows[i] 赋值与 Icons 导入编译错）+ P2×3（TonePlayer audio→tab 依赖红线、tech-debt 编号重号、TTS isReady 非 Compose State）；另促成两处超 300 行文件拆分（PhraseCoach→PhraseExplainModel、DEBT-005 记账）
 - Status: M2 代码面 8/9 完成（F205 阻塞）；新特性均待真机验收；feature_list: done 9 项（F001-F005、F104、F107、F206、F209）
+- Next: 用户连小米 14 → M1+M2 一起真机验收 → M1 收口 v0.2.0；用户确认 gradle 依赖后做 F205（alphaTab）；然后 M3
+
 ## 2026-09-16 - Session: M2 代码面收口（F202-F209 全部落地）+ F206 done + M3 前置
 
-- Next: 用户连小米 14 → M1+M2 一起真机验收 → M1 收口 v0.2.0；用户确认 gradle 依赖后做 F205（alphaTab）；然后 M3
+- Completed: F206 移调计算器（CI 绿 **done**）——本标题行原被误置，2026-09-17 洁癖整理时修正锚位（重复段清理）
