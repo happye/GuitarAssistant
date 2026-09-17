@@ -1,7 +1,6 @@
 package com.guitarcoach.app.core.tab
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -59,10 +58,22 @@ class MidiTabConverterTest {
     }
 
     @Test
-    fun `超出音域抛可读错误`() {
-        val e = assertThrows(IllegalArgumentException::class.java) {
-            MidiTabConverter.convert(listOf(note(20, 0.0)), bpm = 60)
-        }
-        assertTrue(e.message!!.contains("音域"))
+    fun `超出音域的音跳过不炸整个转写`() {
+        // 用户实测根修：Song 2 混音里的贝斯检出 midi 37（低于低 E）曾把整个转写毁掉
+        val placed = MidiTabConverter.convert(listOf(note(40, 0.0), note(37, 0.5), note(45, 1.0)), bpm = 60)
+        assertEquals(listOf(40, 45), placed.map { it.midiOf() })
     }
+
+    @Test
+    fun `全部超域返回空列表不抛`() {
+        assertEquals(0, MidiTabConverter.convert(listOf(note(20, 0.0), note(25, 1.0)), bpm = 60).size)
+    }
+
+    @Test
+    fun `超上界同样跳过`() {
+        val placed = MidiTabConverter.convert(listOf(note(89, 0.0), note(64, 1.0)), bpm = 60)
+        assertEquals(listOf(64), placed.map { it.midiOf() })
+    }
+
+    private fun MidiTabConverter.PlacedNote.midiOf(): Int = STANDARD_TUNING_MIDI[string - 1] + fret
 }

@@ -56,7 +56,7 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
         status = null
         scope.launch {
             try {
-                val doc = withContext(Dispatchers.IO) {
+                val (doc, skippedOutOfRange) = withContext(Dispatchers.IO) {
                     val pcm = context.contentResolver.openFileDescriptor(uri, "r")?.use {
                         AudioPcmExtractor().extractToMono(it.fileDescriptor, targetRate = 22050)
                     } ?: throw IllegalArgumentException("文件读取失败，请重试")
@@ -68,23 +68,26 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                     }
                     progressText = "转写中…"
                     val engine = TranscriptionEngine(context)
-                    val midiNotes = try {
+                    val result = try {
                         engine.transcribe(pcm.pcm, pcm.sampleRate) { p ->
                             progressText = "转写中… ${(p * 100).toInt()}%"
                         }
                     } finally {
                         engine.close()
                     }
+                    val midiNotes = result.notes
                     if (midiNotes.isEmpty()) throw IllegalArgumentException("没有转写出音符——试试更干净的单音素材")
                     // 时长截断（前 2 分钟）：长曲先出主干；截断必须告知用户（局限如实标注，监督员 P2）
                     val kept = midiNotes.filter { it.timeSec < 120 }
                     truncated = midiNotes.size - kept.size
                     val placed = MidiTabConverter.convert(kept, bpm)
-                    MidiTabConverter.toTabDocument(placed, bpm = bpm, title = "扒谱 " + uri.lastPathSegment?.substringAfterLast('/')?.take(24).orEmpty())
+                    val doc = MidiTabConverter.toTabDocument(placed, bpm = bpm, title = "扒谱 " + uri.lastPathSegment?.substringAfterLast('/')?.take(24).orEmpty())
+                    doc to result.skippedOutOfRange
                 }
                 onDocument(doc)
                 status = "转写完成：${doc.sections.sumOf { s -> s.bars.sumOf { b -> b.notes.size } }} 个音符已进谱面" +
-                    if (truncated > 0) "（仅取前 2 分钟主干，其余 $truncated 个音符未入谱）" else ""
+                    (if (truncated > 0) "（仅取前 2 分钟主干，其余 $truncated 个音符未入谱）" else "") +
+                    (if (skippedOutOfRange > 0) "\n⚠ 已忽略 $skippedOutOfRange 个超出吉他音域的检出（混音素材的贝斯/鼓常见）" else "")
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

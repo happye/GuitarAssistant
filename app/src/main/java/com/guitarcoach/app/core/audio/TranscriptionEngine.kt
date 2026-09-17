@@ -2,6 +2,7 @@ package com.guitarcoach.app.core.audio
 
 import android.content.Context
 import com.guitarcoach.app.core.tab.MidiTabConverter
+import com.guitarcoach.app.core.tab.STANDARD_TUNING_MIDI
 import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -26,6 +27,9 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
         // 帧数不再硬编码：从输出张量实际 shape 读取（模型/图序差异防呆）
         const val N_PITCHES = 88
         const val N_CONTOURS = 264
+
+        /** 吉他合法音域：6 弦空弦(midi 40) ~ 1 弦 24 品(midi 88)。 */
+        val MIDI_RANGE = (STANDARD_TUNING_MIDI.last()..(STANDARD_TUNING_MIDI.first() + 24))
     }
 
     private val interpreter: Interpreter
@@ -39,12 +43,17 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
             fd.createInputStream().channel.map(java.nio.channels.FileChannel.MapMode.READ_ONLY, fd.startOffset, fd.declaredLength)
         }
 
+    data class TranscriptionResult(
+        val notes: List<MidiTabConverter.MidiNote>,
+        val skippedOutOfRange: Int, // 超出吉他音域被跳过的检出数（混音素材的贝斯/鼓常驻此区）
+    )
+
     /** 转写主入口：MIDI 音符（时间秒，升序）。onProgress 0..1 按窗回调。 */
     fun transcribe(
         pcm: ShortArray,
         sampleRate: Int,
         onProgress: (Float) -> Unit = {},
-    ): List<MidiTabConverter.MidiNote> {
+    ): TranscriptionResult {
         val mono = PcmResampler.toMonoRate(pcm, sampleRate, 1, TARGET_RATE)
         val wave = FloatArray(mono.size) { mono[it] / 32768f }
 
@@ -96,10 +105,16 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
             onProgress((winIndex.toFloat() / totalWindows).coerceIn(0f, 1f))
         }
 
-        return events
+        // 音域过滤（用户实测 Song 2 崩溃根修）：混音素材的贝斯/鼓检出低于低 E 的音（如 midi 37），
+        // 旧逻辑在弦品分配层直接抛异常毁掉整个转写——改为跳过并计数上报
+        val inRange = events
             .distinctBy { (it.timeSec * 100).toInt() to it.midi }
+            .filter { it.midi in MIDI_RANGE }
+        val skipped = events.size - inRange.size
+        val notes = inRange
             .map { MidiTabConverter.MidiNote(it.midi, it.timeSec, it.durationSec) }
             .sortedBy { it.timeSec }
+        return TranscriptionResult(notes, skipped)
     }
 
     override fun close() {

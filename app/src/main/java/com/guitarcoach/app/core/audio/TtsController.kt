@@ -24,6 +24,11 @@ class TtsController(context: Context) {
     /** 是否初始化成功（StateFlow：UI collectAsState 后能随初始化完成而重组）。 */
     val isReady: StateFlow<Boolean> = _isReady
 
+    private val _isSpeaking = MutableStateFlow(false)
+
+    /** 是否正在朗读（StateFlow）：「停止播报」按钮的显隐与反馈用。 */
+    val isSpeaking: StateFlow<Boolean> = _isSpeaking
+
     @Volatile var languageAvailable: Boolean = true
         private set
 
@@ -46,11 +51,18 @@ class TtsController(context: Context) {
     /** 朗读一段文本；重复调用会打断上一段。 */
     fun speak(text: String) {
         if (!_isReady.value || text.isBlank()) return
+        tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+            override fun onStart(utteranceId: String?) { _isSpeaking.value = true }
+            override fun onDone(utteranceId: String?) { _isSpeaking.value = false }
+            override fun onError(utteranceId: String?) { _isSpeaking.value = false }
+        })
         tts?.speak(text.take(2000), TextToSpeech.QUEUE_FLUSH, null, "guitarcoach-utterance")
+        _isSpeaking.value = true
     }
 
     fun stop() {
         tts?.stop()
+        _isSpeaking.value = false // 立即反馈：按钮随状态消失（用户实测"点了没反应"）
     }
 
     fun shutdown() {

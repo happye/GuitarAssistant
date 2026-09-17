@@ -25,6 +25,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -71,6 +74,7 @@ private val HAND_CONNECTIONS = listOf(
 internal fun PostureCoachScreen(container: AppContainer, onBack: () -> Unit) {
     val context = LocalContext.current
     val tts = remember { TtsController(context) }
+    val ttsSpeaking by tts.isSpeaking.collectAsState()
     DisposableEffect(Unit) { onDispose { tts.shutdown() } }
 
     var hasPermission by remember {
@@ -91,6 +95,7 @@ internal fun PostureCoachScreen(container: AppContainer, onBack: () -> Unit) {
     val lastReviewAt = remember { mutableStateOf(0L) }
     var review by remember { mutableStateOf<CoachFeedback?>(null) }
 
+    var useFrontCamera by rememberSaveable { mutableStateOf(true) } // 默认前置：用户照着屏幕练（实测反馈）
     val landmarker = remember {
         LiveHandLandmarker(context) { h, _ ->
             hands.value = h
@@ -147,13 +152,11 @@ internal fun PostureCoachScreen(container: AppContainer, onBack: () -> Unit) {
                 .weight(1f),
         ) {
             if (hasPermission) {
-                CameraPreview(
-                    onFrame = { bitmap, ts ->
-                        lastFrame.value = bitmap
-                        landmarker.detectAsync(bitmap, ts)
-                    },
-                )
-                HandOverlay(hands.value)
+                CameraPreview(useFront = useFrontCamera) { bitmap, ts ->
+                    lastFrame.value = bitmap
+                    landmarker.detectAsync(bitmap, ts)
+                }
+                HandOverlay(hands.value, mirrored = useFrontCamera)
             } else {
                 Column(
                     modifier = Modifier.align(Alignment.Center),
@@ -163,6 +166,10 @@ internal fun PostureCoachScreen(container: AppContainer, onBack: () -> Unit) {
                     Button(onClick = { permLauncher.launch(Manifest.permission.CAMERA) }) { Text("授权相机") }
                 }
             }
+            TextButton(
+                onClick = { useFrontCamera = !useFrontCamera },
+                modifier = Modifier.align(Alignment.TopEnd),
+            ) { Text(if (useFrontCamera) "🔄 后置" else "🔄 前置") }
             // F302 警报横幅（0ms 层）
             if (!inFrame.value) {
                 Surface(
@@ -211,7 +218,9 @@ internal fun PostureCoachScreen(container: AppContainer, onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = { tts.stop() }) { Text("停止播报") }
+                    if (ttsSpeaking) {
+                        TextButton(onClick = { tts.stop() }) { Text("■ 停止播报") }
+                    }
                 }
             }
         }
@@ -235,57 +244,62 @@ internal fun PostureCoachScreen(container: AppContainer, onBack: () -> Unit) {
 }
 
 @Composable
-private fun CameraPreview(onFrame: (Bitmap, Long) -> Unit) {
+private fun CameraPreview(useFront: Boolean, onFrame: (Bitmap, Long) -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val executor = remember { Executors.newSingleThreadExecutor() }
-    var provider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
-    // 退出顺序：先解绑相机（停帧派发、释放硬件），再关线程池——反过来会有 RejectedExecution 崩溃
-    DisposableEffect(Unit) {
-        onDispose {
-            provider?.unbindAll()
-            executor.shutdown()
+    val providerRef = remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    // key(useFront)：切换前后置时旧组合销毁（unbind+关线程池）→ 新组合重建绑定
+    key(useFront) {
+        val executor = remember { Executors.newSingleThreadExecutor() }
+        DisposableEffect(useFront) {
+            onDispose {
+                // 退出顺序：先解绑相机（停帧派发、释放硬件），再关线程池——反过来会有 RejectedExecution 崩溃
+                providerRef.value?.unbindAll()
+                executor.shutdown()
+            }
         }
-    }
 
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = { ctx ->
-            val previewView = PreviewView(ctx)
-            val providerFuture = ProcessCameraProvider.getInstance(ctx)
-            providerFuture.addListener({
-                val p = providerFuture.get()
-                provider = p
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                    .also { ana ->
-                        ana.setAnalyzer(executor) { proxy ->
-                            try {
-                                val bitmap = proxy.toBitmap()
-                                val ts = proxy.imageInfo.timestamp / 1_000_000
-                                onFrame(bitmap, ts)
-                            } finally {
-                                proxy.close()
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                val previewView = PreviewView(ctx)
+                val providerFuture = ProcessCameraProvider.getInstance(ctx)
+                providerFuture.addListener({
+                    val p = providerFuture.get()
+                    providerRef.value = p
+                    val preview = Preview.Builder().build().also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
+                    val selector = if (useFront) CameraSelector.DEFAULT_FRONT_CAMERA else CameraSelector.DEFAULT_BACK_CAMERA
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .build()
+                        .also { ana ->
+                            ana.setAnalyzer(executor) { proxy ->
+                                try {
+                                    val bitmap = proxy.toBitmap()
+                                    val ts = proxy.imageInfo.timestamp / 1_000_000
+                                    onFrame(bitmap, ts)
+                                } finally {
+                                    proxy.close()
+                                }
                             }
                         }
-                    }
-                p.unbindAll()
-                p.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
-            }, ContextCompat.getMainExecutor(ctx))
-            previewView
-        },
-    )
+                    p.unbindAll()
+                    p.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                }, ContextCompat.getMainExecutor(ctx))
+                previewView
+            },
+        )
+    }
 }
 
-/** F301 骨架叠加：21 点连线按画面尺寸拉伸绘制（v1 简化：不做裁剪对齐）。 */
+/** F301 骨架叠加：21 点连线按画面尺寸拉伸绘制；前置摄像头预览是镜像显示，x 需翻转对齐。 */
 @Composable
-private fun HandOverlay(hands: List<List<PostureRules.Pt>>) {
+private fun HandOverlay(hands: List<List<PostureRules.Pt>>, mirrored: Boolean = false) {
     val lineColor = Color(0xFF4CD964)
     Canvas(modifier = Modifier.fillMaxSize()) {
+        fun mx(x: Float) = if (mirrored) 1f - x else x
         hands.forEach { hand ->
             if (hand.size < 21) return@forEach
             HAND_CONNECTIONS.forEach { (a, b) ->
@@ -293,13 +307,13 @@ private fun HandOverlay(hands: List<List<PostureRules.Pt>>) {
                 val pb = hand[b]
                 drawLine(
                     lineColor,
-                    Offset(pa.x * size.width, pa.y * size.height),
-                    Offset(pb.x * size.width, pb.y * size.height),
+                    Offset(mx(pa.x) * size.width, pa.y * size.height),
+                    Offset(mx(pb.x) * size.width, pb.y * size.height),
                     strokeWidth = 4f,
                 )
             }
             hand.forEach { p ->
-                drawCircle(Color.White, radius = 6f, center = Offset(p.x * size.width, p.y * size.height))
+                drawCircle(Color.White, radius = 6f, center = Offset(mx(p.x) * size.width, p.y * size.height))
             }
         }
     }
