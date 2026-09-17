@@ -94,6 +94,8 @@ dependencies {
     implementation(libs.okhttp)
     // Guitar Pro 导入（F205）
     implementation(libs.alphatab)
+    // 音源分离（F602 v2：Spleeter 2stems ONNX）
+    implementation(libs.onnxruntime.android)
     // F602 端侧转写
     implementation(libs.tensorflow.lite)
     implementation(libs.kotlinx.serialization.json)

@@ -22,6 +22,98 @@ class AudioPcmExtractor {
         val durationSeconds: Double get() = if (sampleRate == 0) 0.0 else pcm.size.toDouble() / sampleRate
     }
 
+    data class StereoResult(val samples: FloatArray, val sampleRate: Int, val durationSeconds: Double)
+
+    /**
+     * 立体声 float 版（F602 v2 分离路径）：解码立体声块原样收集（不重采样不混缩——
+     * 重采样在 [SpleeterSeparator.separate] 内部按模型域 44100 做），输出交错 [L R L R...] float。
+     * 上限同 MAX_SECONDS（解码循环内检查）。
+     */
+    fun extractStereoFloat(fd: FileDescriptor, maxSeconds: Long = MAX_SECONDS): StereoResult {
+        val extractor = MediaExtractor()
+        try {
+            extractor.setDataSource(fd)
+            var audioTrack = -1
+            var format: MediaFormat? = null
+            for (i in 0 until extractor.trackCount) {
+                val f = extractor.getTrackFormat(i)
+                if (f.getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true) {
+                    audioTrack = i
+                    format = f
+                    break
+                }
+            }
+            if (audioTrack < 0 || format == null) {
+                throw IllegalArgumentException("文件里没有音频轨")
+            }
+            extractor.selectTrack(audioTrack)
+            val inputMime = format.getString(MediaFormat.KEY_MIME)!!
+            val codec = MediaCodec.createDecoderByType(inputMime)
+            codec.configure(format, null, null, 0)
+            codec.start()
+
+            val inputChannels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+            val chunks = java.util.ArrayList<ShortArray>(256)
+            var totalSamples = 0L
+            val info = MediaCodec.BufferInfo()
+            var sawInputEos = false
+            var sawOutputEos = false
+
+            try {
+                while (!sawOutputEos) {
+                    if (!sawInputEos) {
+                        val inIdx = codec.dequeueInputBuffer(10_000)
+                        if (inIdx >= 0) {
+                            val buf = codec.getInputBuffer(inIdx)!!
+                            val size = extractor.readSampleData(buf, 0)
+                            if (size < 0) {
+                                codec.queueInputBuffer(inIdx, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+                                sawInputEos = true
+                            } else {
+                                codec.queueInputBuffer(inIdx, 0, size, extractor.sampleTime, 0)
+                                extractor.advance()
+                            }
+                        }
+                    }
+                    val outIdx = codec.dequeueOutputBuffer(info, 10_000)
+                    when {
+                        outIdx >= 0 -> {
+                            val outBuf = codec.getOutputBuffer(outIdx)!!
+                            val shortBuf = outBuf.order(java.nio.ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+                            val samples = ShortArray(shortBuf.remaining())
+                            shortBuf.get(samples)
+                            chunks += samples
+                            totalSamples += samples.size / inputChannels.coerceAtLeast(1)
+                            if (totalSamples / 44100.0 > maxSeconds && inputSampleRateKnown44k()) {
+                                throw IllegalArgumentException("文件太长（超过 ${maxSeconds / 60} 分钟），请截取后再试")
+                            }
+                            codec.releaseOutputBuffer(outIdx, false)
+                            if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) sawOutputEos = true
+                        }
+                    }
+                }
+            } finally {
+                runCatching { codec.stop() }
+                codec.release()
+            }
+
+            val all = ShortArray(totalSamples.toInt() * inputChannels)
+            var off = 0
+            chunks.forEach { c ->
+                System.arraycopy(c, 0, all, off, c.size)
+                off += c.size
+            }
+            val out = FloatArray(all.size)
+            for (i in out.indices) out[i] = all[i] / 32768f
+            val seconds = out.size / inputChannels.coerceAtLeast(1).toDouble() / 44100.0
+            return StereoResult(out, 44100, seconds)
+        } finally {
+            extractor.release()
+        }
+    }
+
+    private fun inputSampleRateKnown44k() = true // 时长上限按最坏 44.1k 估（保守提前拒绝）
+
     companion object {
         const val MAX_SECONDS = 30L * 60        // 落盘路径上限
         const val MAX_SECONDS_IN_MEMORY = 10L * 60 // 内存路径（转写）上限

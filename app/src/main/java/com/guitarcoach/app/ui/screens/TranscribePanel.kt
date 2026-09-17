@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.guitarcoach.app.core.audio.AudioPcmExtractor
+import com.guitarcoach.app.core.audio.SpleeterSeparator
 import com.guitarcoach.app.core.audio.TempoDetector
 import com.guitarcoach.app.core.audio.TranscriptionEngine
 import com.guitarcoach.app.core.tab.MidiTabConverter
@@ -58,8 +59,25 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
         scope.launch {
             try {
                 val (doc, skippedOutOfRange) = withContext(Dispatchers.IO) {
-                    val pcm = context.contentResolver.openFileDescriptor(uri, "r")?.use {
-                        AudioPcmExtractor().extractToMono(it.fileDescriptor, targetRate = 22050, enhance = enhance)
+                    // 双路径：enhance 开 = Spleeter 分离人声/鼓 → 伴奏轨转写（混音素材）
+                    //        enhance 关 = 直通抽取 mono（干净单音素材）
+                    val pcm = context.contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
+                        if (enhance) {
+                            val stereo = AudioPcmExtractor().extractStereoFloat(fd.fileDescriptor)
+                            val separator = SpleeterSeparator(context)
+                            try {
+                                val sep = separator.separate(stereo.samples, stereo.sampleRate)
+                                // 伴奏轨（已去人声/鼓）→ ShortArray 供转写/测速
+                                val shortPcm = ShortArray(sep.accompaniment.size) { i ->
+                                    (sep.accompaniment[i] * 32767).toInt().coerceIn(-32768, 32767).toShort()
+                                }
+                                AudioPcmExtractor.MonoResult(shortPcm, sep.sampleRate)
+                            } finally {
+                                separator.close()
+                            }
+                        } else {
+                            AudioPcmExtractor().extractToMono(fd.fileDescriptor, targetRate = 22050, enhance = false)
+                        }
                     } ?: throw IllegalArgumentException("文件读取失败，请重试")
                     // F706 BPM 自动检测：检出即预填并采用；用户手输值优先生效
                     val bpm = if (bpmText.isBlank()) {
@@ -121,7 +139,7 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                 ) {
                     androidx.compose.material3.Checkbox(checked = enhance, onCheckedChange = { enhance = it })
                     Text(
-                        "吉他聚焦（去人声/压鼓，混音素材建议开）",
+                        "分离人声/鼓（Spleeter 端侧，混音素材建议开；首次加载稍慢）",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }

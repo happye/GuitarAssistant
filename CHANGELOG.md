@@ -6,6 +6,7 @@
 ## [未发布] v0.2.0 —— M1 乐理与识谱基础（进行中）
 
 ### 小版本
+- v0.2.28（2026-09-17）：**音轨分离初版（F602 v2）**——Spleeter 2stems int8 ONNX（26MB×2 随包）端侧分离人声/鼓，伴奏轨进转写（basic-pitch）——混音素材专攻；纯 Kotlin STFT/iSTFT（radix-2 FFT，round-trip 2 测试）忠实移植 sherpa-onnx spleeter impl（soft mask 平方比归一）；扒谱页新增「分离人声/鼓」开关（默认开）；测试素材统一 testdata/（music+guitartablature）
 - v0.2.25（2026-09-17）：**扒谱精度与音色双升级**（全网调研落档 .learnings/research-f602-tone-2026-09-17.md，源码级核实）——①NoteDecoder v2：官方 output_to_notes_polyphonic 算法移植（差分推断 onset/局部峰值取平台左沿/能量消耗防重复/官方 min_note_len）+ 吉他调优（min_note_len 186ms、解码层音域收口 bin19~67 根治 midi37 类低音误检）+ amplitude 输出 ②试听音色 Karplus-Strong 物理拨弦合成替换正弦谐波（延迟线+反馈低通+软过载+拨片瞬态，确定性可测）③超域音三层修复（跳过+计数上报，Song 2 实测崩溃根修）④转写超域过滤/amplitude 透传链
 - v0.2.23（2026-09-17）：监督员抓崩点转移——playSequence 裸线程包 render try-catch（防爆炸 require 的 IAE 不再进程崩溃）+ 600s 上限单测；抽取错误文案引用实际 maxSeconds。深度复盘落 .learnings L019-L021/E007-E008（JsonNull 双向错误、崩点转移模式、对抗审查门禁）；对抗审查升级为发版前固定门禁（AGENTS.md 工程纪律 7）
 - v0.2.22（2026-09-17）：**对抗性审查轮**（独立攻击代理：P0×0/P1×5/P2×16，报告 .learnings/adversarial-review-2026-09-17b.md）——P1×5 全修：①SSE 字符串过滤误杀 jsonMode 合法 null token（JSON 损坏源）②空流零发射不换链（UI 永远"…"）③转写内存路径 10 分钟上限下沉解码循环内（旧版先驻留 240MB 再拒→OOM）④病态长行谱 beat/时值爆炸防爆炸上限（解析段列 cap + ToneRenderer 600s require）⑤调音器麦克风占用防崩+防死循环。高优 P2×4：Room 连接进程级单例（Activity 重建堆积连接）/播放光标自然播完复位/聊天 history 40 条上限/曲库删除加确认。P2 余 12 条落 DEBT-008
