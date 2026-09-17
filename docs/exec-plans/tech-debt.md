@@ -67,3 +67,15 @@
 5. rememberSaveable：TabDocument 整体进 Bundle 的 binder 1MB 风险（长谱 JSON 几十 KB，叠加逼近阈值）——考虑迁移 DataStore
 6. jsonSaver restore 失败 null 塞非空类型洞（当前全部可空 UI 态，暂无实害）
 7. 练习计时放弃无确认
+
+## DEBT-009：扒谱精度天花板与升级路径（2026-09-17 实证收口）
+
+- **模型事实修正**：basic-pitch 官方唯一模型就是 0.2MB nmp.tflite（PyPI 包内置，ICASSP 2022 卖点即端侧轻量）——此前"官方 16MB 完整模型"的说法有误（调研 agent 评估偏差，已纠正）。模型侧无"换大版"捷径
+- 当前链路（v0.2.25）：MP3→MediaCodec PCM→线性重采样 22050（无抗混叠，已知限制）→TFLite 2s 窗→NoteDecoder v2（官方 output_to_notes_polyphonic 移植）→弦品 DP
+- 精度损失归因排序：①素材（全频段混音超出模型能力，官方论文用单乐器评估）②melodia_trick 未移植（官方默认开，对 melodic line 有增益）③重采样质量
+- 升级路径（按收益/成本）：
+  1. 素材引导（零成本）：清音/dry 单音吉他直录素材，避开混音
+  2. melodia_trick 移植（中）：官方默认开启，对旋律线连续性有增益
+  3. 抗混叠重采样（小）：soxr 级质量需自研多相滤波器
+  4. GuitarSet 微调蒸馏（大，中期最优）：需 Python 训练链
+  5. MT3 系大模型（不可行）：百 MB 级
