@@ -44,7 +44,7 @@ class StereoFocusProcessorTest {
         // L = x, R = -x（纯 side，模拟偏侧双轨吉他）
         val tone = ShortArray(n) { i -> (sin(2 * PI * 300 * i / sr) * 12000).toInt().toShort() }
         val proc = StereoFocusProcessor(sr, strength = 0.8)
-        val out = proc.process(stereo(tone, ShortArray(n) { (-tone[it]).toShort() }), 2)
+        val out = proc.process(stereo(tone, ShortArray(n) { (-tone[it].toInt()).toShort() }), 2)
 
         var outPeak = 0.0
         for (i in 0 until n) outPeak = maxOf(outPeak, kotlin.math.abs(out[i * 2].toDouble()))
