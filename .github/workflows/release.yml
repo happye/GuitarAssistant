@@ -39,7 +39,7 @@ jobs:
       - name: 重命名 APK
         run: cp app/build/outputs/apk/debug/app-debug.apk "GuitarCoach-${GITHUB_REF_NAME}-debug.apk"
 
-      # 用 runner 自带 gh 建 Release（避免第三方 action 解析失败的坑）
+      # 用 runner 自带 gh 建 Release；大文件（120MB）上传分步+重试（一次直传易超时，v0.2.29 实测教训）
       - name: 发布到 GitHub Releases
         env:
           GH_TOKEN: ${{ github.token }}
@@ -49,6 +49,10 @@ jobs:
             *-*) ARGS="--prerelease" ;;
           esac
           gh release create "$GITHUB_REF_NAME" \
-            "GuitarCoach-${GITHUB_REF_NAME}-debug.apk#安装包（debug 签名，直接安装）" \
             --title "GuitarCoach ${GITHUB_REF_NAME}" \
-            --generate-notes $ARGS
+            --generate-notes $ARGS || true
+          for i in 1 2 3 4 5; do
+            gh release upload "$GITHUB_REF_NAME" "GuitarCoach-${GITHUB_REF_NAME}-debug.apk" --clobber && echo "upload ok" && exit 0
+            echo "upload retry $i..."; sleep 30
+          done
+          echo "asset upload failed after retries"; exit 1
