@@ -105,7 +105,7 @@ fun PracticeScreen(container: AppContainer) {
             ) {
                 Text("视觉教练（实验）", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "后置相机实时看手型：折腕/塌指/拇指位置即时警报，每两分钟给一条语音点评。支架斜放对准双手。",
+                    "前置相机实时看手型（可切后置）：折腕/塌指/拇指位置即时警报，约每 100 秒一条语音点评。支架斜放对准双手。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
@@ -52,6 +53,7 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
     var truncated by remember { mutableStateOf(0) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        android.util.Log.d("GuitarCoach", "扒谱: 选择器返回 uri=$uri")
         if (uri == null) return@rememberLauncherForActivityResult
         working = true
         error = null
@@ -70,6 +72,10 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                                 val sep = separator.separate(stereo.samples, stereo.sampleRate) { p ->
                                     progressText = "分离人声/鼓中… ${(p * 100).toInt()}%"
                                 }
+                                // 分离有效性诊断：人声/伴奏能量对比（两者接近=分离未生效，写日志核对）
+                                val rmsV = kotlin.math.sqrt(sep.vocals.map { x -> x * x * 1e6 }.average())
+                                val rmsA = kotlin.math.sqrt(sep.accompaniment.map { x -> x * x * 1e6 }.average())
+                                android.util.Log.d("GuitarCoach", "分离诊断: vocals RMS=%.2f, accompaniment RMS=%.2f".format(rmsV, rmsA))
                                 // 伴奏轨（已去人声/鼓）→ ShortArray 供转写/测速
                                 val shortPcm = ShortArray(sep.accompaniment.size) { i ->
                                     (sep.accompaniment[i] * 32767).toInt().coerceIn(-32768, 32767).toShort()
@@ -132,28 +138,26 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { launcher.launch(arrayOf("*/*")) }, enabled = !working) {
+                Button(onClick = {
+                    android.util.Log.d("GuitarCoach", "扒谱: 点击选音频转写 (working=$working)")
+                    launcher.launch(arrayOf("*/*"))
+                }, enabled = !working) {
                     Text(if (working) (progressText ?: "处理中…") else "选音频转写")
                 }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     androidx.compose.material3.Checkbox(checked = enhance, onCheckedChange = { enhance = it })
                     Text(
-                        "分离人声/鼓（Spleeter 端侧，混音素材建议开；首次加载稍慢）",
+                        "分离人声/鼓（Spleeter 端侧，混音素材建议开）",
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
                 OutlinedTextField(
                     value = bpmText,
                     onValueChange = { bpmText = it.filter { c -> c.isDigit() }.take(3) },
-                    modifier = Modifier.padding(0.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     label = { Text("BPM（留空=自动检测）") },
                     singleLine = true,
                 )
-            }
             status?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary) }
             error?.let { Text("❌ $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
         }

@@ -33,9 +33,16 @@ object ToneRenderer {
             val freq = midiToFreq(ev.midi)
             if (!freq.isFinite() || freq <= 0) continue
             val start = (ev.timeSec * sampleRate).toInt().coerceIn(0, samples - 1)
-            val len = (ev.durationSec * sampleRate).toInt().coerceAtMost(samples - start)
+            // 人手微变：时长 ±3% 随机（按 midi 播种确定性），消除节拍器式的机械感
+            val humanize = 1.0 + (java.util.Random(ev.midi * 31L + ev.timeSec.toRawBits() / 1000).nextDouble() - 0.5) * 0.06
+            val len = (ev.durationSec * humanize * sampleRate).toInt().coerceAtMost(samples - start)
             if (len <= 0) continue
-            ksString(freq, len, sampleRate, ev.gain, ev.midi) { i, v ->
+            // 双发失谐：±0.15% 两根"弦"叠加（真实吉他是双拾音/双弦微失谐，单发必机械）
+            ksString(freq * 0.9985, len, sampleRate, ev.gain * 0.6, ev.midi) { i, v ->
+                val idx = start + i
+                if (idx in 0 until samples) mix[idx] += v
+            }
+            ksString(freq * 1.0015, len, sampleRate, ev.gain * 0.6, ev.midi + 1) { i, v ->
                 val idx = start + i
                 if (idx in 0 until samples) mix[idx] += v
             }

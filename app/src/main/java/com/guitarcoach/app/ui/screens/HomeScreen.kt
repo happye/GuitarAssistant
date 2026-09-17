@@ -165,7 +165,7 @@ fun HomeScreen(container: AppContainer) {
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("功能与进度（v0.2.10）", style = MaterialTheme.typography.titleMedium)
+                Text("功能与进度（v${com.guitarcoach.app.BuildConfig.VERSION_NAME}）", style = MaterialTheme.typography.titleMedium)
                 Text("✅ 已可用：识谱（拍谱/粘贴/GP 导入）· 谱面渲染与点按试听 · 逐句讲解 · 乐理问答 · 移调计算器 · 指板可视化 · 调音器 · 节拍器 · 练习记录 · 视觉教练 · 跟练判定 · 曲库 · AI 周复盘 · 音色向导", style = MaterialTheme.typography.bodySmall)
                 Text("⏳ 待真机验收：以上功能在小米 14 上逐项确认后进入正式版（装 GitHub Releases 最新包即可参与）", style = MaterialTheme.typography.bodySmall)
                 Text("🔬 后续：音频转谱（F602 转写引擎接入中）、五线谱双谱渲染、按弦手位精纠", style = MaterialTheme.typography.bodySmall)
