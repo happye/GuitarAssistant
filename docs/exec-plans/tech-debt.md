@@ -79,3 +79,10 @@
   3. 抗混叠重采样（小）：soxr 级质量需自研多相滤波器
   4. GuitarSet 微调蒸馏（大，中期最优）：需 Python 训练链
   5. MT3 系大模型（不可行）：百 MB 级
+
+## DEBT-010：吉他分离立项评估结论（2026-09-17，调研报告 .learnings/research-f602-tone-2026-09-17.md 补充轮）
+
+- **端侧 Demucs TFLite 化：不立项**（三重否决：无现成转换链/手机外推 25-80 分钟每分钟音频/6s guitar stem 官方自评仅 okay）。demucs.cpp+GGML 走 JNI 理论可行（代码现成）但"导入后慢慢转"的离线模式 UX 差
+- **立项推荐（v1）：Spleeter 2stems ONNX 26MB int8 经 sherpa-onnx Android（Kotlin 一等公民支持）先消人声+鼓再转谱**——手机 ARM 实测 RTF 0.127-0.258（1 分钟音频 8-16 秒出结果）；局限：吉他仍与 bass/keys 混叠（诚实预期）
+- 纯 DSP 中央消除+带通（已交付）：辅助定位——摇滚双轨 hard-pan 混音歪打正着，中央 funk/solo 与 mono 混音失效；Audacity 官方已弃 DSP 路线改神经方案（佐证）
+- 后续路线图：v1 Spleeter 消人声+鼓 → v2 demucs.cpp JNI 离线深度模式（可选）→ v3 自训 <30MB guitar-stem 模型（MoisesDB/MUSDB 数据，数周研究项目）
