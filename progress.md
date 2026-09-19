@@ -3,6 +3,15 @@
 > Agent 交接 artifact。每次会话收尾必更新：做了什么 / 当前特性状态 / 下一步建议。
 > 特性状态唯一信源是 `feature_list.json`；里程碑范围与验收标准见 `docs/开发方案.md` §9。
 
+## 2026-09-19 - Session: adb 真机全走查 + 返回键丢状态/BPM 默认值双修（v0.2.31）
+
+- **真机走查（小米 14，agent 全自动 adb）**：5 Tab 全过——调音器聆听态/节拍器运行/文本谱解析渲染点按试听/扒谱全链路/概念卡片展开/指板可视化（C 音六弦位置全对）/移调计算器（C→G=+7 半音）/我的空态，全绿无崩溃
+- **扒谱全链路真机实测数据**：Song 2 全曲——分离 23s（诊断 vocals RMS=101.94 / accompaniment RMS=199.11，比值 0.51 分离有效）→ BPM 自动检出 129（真实 ~132，-2%）→ 198 音符 54 小节进谱面，无超域/截断警告；谱面 DP 弦品分布合理；试听播放/停止/光标正常
+- **两 bug 修复（对抗审查 P1 清零后发）**：①系统 BACK 弹栈丢工作台状态（E011/L024）→ CoachApp BackHandler 统一 saveState 语义，真机验证往返状态保留 + home 返回仍退出 ②BPM 默认预填 120 架空自动检测 + 机器预填/手输不分（L025，审查抓的跨曲污染 P1）→ 默认空 + bpmManuallyEdited 标志
+- **环境发现（非 App bug）**：小米 14 无任何标准 TTS 引擎（tts_default_synth=null）→ 语音点评/卡片点读静音，待用户装 TTS 引擎（讯飞语记/Google TTS）
+- 验证: 本地 136/136 单测绿；assembleDebug APK（120MB）真机安装验证；CI push 后为准
+- Next: 用户实测出谱质量（素材端侧天花板内调参）→ M1-M6 收口验收 → F202 alphaTab 评估
+
 ## 2026-09-15 - Session: M0 骨架完成（历史，来自 README / docs）
 
 - Completed: F001-F005（M0 全部）——工程骨架与 5 Tab UI、LLM 网关（流式+视觉+路由）、教练编排器三链路、谱面引擎（TabDocument + TextTabParser + LlmTabExtractor）、MPM 调音器

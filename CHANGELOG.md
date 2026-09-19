@@ -6,6 +6,7 @@
 ## [未发布] v0.2.0 —— M1 乐理与识谱基础（进行中）
 
 ### 小版本
+- v0.2.31（2026-09-19）：真机走查轮三修——①**系统返回键不再丢识谱工作台状态**（BACK 弹栈销毁 rememberSaveable 状态→CoachApp BackHandler 统一到 saveState 切回首页语义，home 返回仍正常退出）②**扒谱 BPM 自动检测真生效**（原默认预填 120 架空「留空=自动检测」；检测值/手输值分标志 bpmManuallyEdited，防跨曲 BPM 污染；检测失败不再预填 120 假装检出）③对抗审查 P1（跨曲污染）同批修；真机实测 Song 2 全链路：分离 23s（vocals/accompaniment RMS 101.94/199.11）→ 转写 → BPM 自动检出 129（真实 ~132）→ 198 音符进谱面；发现设备无 TTS 引擎（tts_default_synth=null，语音点评静音待用户装 TTS 引擎，非 App bug）；本地 136/136 单测绿
 - v0.2.30（2026-09-18）：分离诊断日志（vocals/accompaniment RMS 对比）+ 扒谱重复使用防御日志 + KS 双发失谐音色（±0.15% 两弦叠加+时长人手微变，消机械感）
 - v0.2.29（2026-09-18）：**分离闪退根修**——整曲一次性分离内存累计 700MB+ 超 Java 堆（OOM 为 Error 不可捕获）→ 分块流式重构（每 23.2s 一块，峰值 50MB）+ 分离进度回调接 UI
 - v0.2.28（2026-09-17）：**音轨分离初版（F602 v2）**——Spleeter 2stems int8 ONNX（26MB×2 随包）端侧分离人声/鼓，伴奏轨进转写；纯 Kotlin STFT/iSTFT（radix-2 FFT round-trip 测试）；算法忠实移植 sherpa-onnx spleeter impl

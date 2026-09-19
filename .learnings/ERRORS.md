@@ -82,3 +82,11 @@
 - 根因: gh 一次直传大文件无重试
 - 修复: 分步——先 gh release create（不带资产）→ gh release upload 循环重试 5 次（--clobber）
 - 验证命令: 重打 tag 后 Releases 页资产出现（v0.2.29 重跑后验证）
+
+## E011 系统返回键丢识谱工作台全部状态（真机走查发现）
+
+- 现象: 识谱工作台扒出 198 音符谱面后按系统返回键，再进识谱 Tab——文档、粘贴内容、BPM 输入全部清空
+- 复现条件: 识谱 Tab 载入文档 → keyevent 4（系统 BACK）→ 底部导航重进识谱。底部 Tab 切换（saveState 路径）不受影响，仅 BACK 路径丢
+- 根因: Navigation Compose 弹栈直接销毁 back stack entry，无 save-on-pop；TabStudioScreen 的 rememberSaveable 状态只在底部导航 popUpTo{saveState=true} 路径存活
+- 修复: CoachApp 加 BackHandler——非 home 路由返回时 navigate 到 home 并 saveState（与 Tab 切换同语义）；home 返回仍正常退出（dumpsys 焦点验证）
+- 验证命令: 识谱→填示例→解析→keyevent 4→底部点识谱→粘贴内容+解析结果应在（v0.2.31 真机验证通过）

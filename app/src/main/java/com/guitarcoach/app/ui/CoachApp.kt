@@ -1,5 +1,6 @@
 package com.guitarcoach.app.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Home
@@ -41,6 +42,19 @@ fun CoachApp(container: AppContainer) {
     )
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route ?: "home"
+
+    // 系统返回 = 切回首页（saveState 路径，与底部 Tab 切换同语义），而不是弹栈销毁——
+    // 否则识谱工作台扒出的谱面/粘贴内容会被返回键直接丢掉（用户数据丢失，真机实测确认）。
+    // 生效依赖：本 BackHandler 组合晚于 NavHost 内部的 PredictiveBackHandler（后者首组合注册、
+    // enabled 翻转不重注册），OnBackPressedDispatcher 后加者优先——升级 activity-compose 后须真机复验此行为
+    if (currentRoute != "home") {
+        BackHandler {
+            navController.navigate("home") {
+                popUpTo(navController.graph.startDestinationId) { saveState = true }
+                launchSingleTop = true
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {

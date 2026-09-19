@@ -1,6 +1,6 @@
 # 交接文档（HANDOFF）——新对话从这里开始
 
-> 更新：2026-09-16 ｜ 用途：用户开启新对话时的唯一入口文件。读完本文 → 按「开工三步」走，即可无缝续作。
+> 更新：2026-09-19 ｜ 用途：用户开启新对话时的唯一入口文件。读完本文 → 按「开工三步」走，即可无缝续作。
 > 本文是快照；**实时状态以 progress.md / feature_list.json / CI 为准**（三者永远比本文新）。
 
 ## 一、开工三步（每次新会话必做，与 CLAUDE.md 一致）
@@ -31,21 +31,22 @@ bash scripts/build.sh compileDebugKotlin   # 本地快速验证
 
 - **里程碑**：M0 ✅（v0.1.0）｜M1-M6 代码面全部落地（**F602 端侧转写引擎已落地**，basic-pitch TFLite 0.2MB 随 APK）｜M7 集百家之长扩展进行中（F701-F709 done：和弦库/游戏化/提速/调弦预设/音分表盘/节拍器高级化/BPM 自动检测/今日练习单/光标跟随/快捷导航/曲库直通跟练）——**关闭条件=真机验收**
 - **特性计数**：38 项 —— done 10（F001-F005、F104、F107、F205、F206、F209，CI 绿）；2026-09-17 用户反馈五连修已落（签名/持久化/长音频/识谱准确性与观感，见 CHANGELOG v0.2.8/v0.2.9）；代码完成待真机验收 ~19；F602 阻塞（basic-pitch 无官方 ONNX）；F504/F604 评估决策记录已落档（暂不做/不上线）
-- **Release**：tag v* → release.yml 自动测试+出 APK+挂 GitHub Releases；**v0.2.9 在线**（签名统一版：仓库内 keystore/debug.keystore，任意来源 APK 可覆盖安装；versionCode=提交数/versionName=tag 号）。用户网络：代理 127.0.0.1:7890 间歇关闭，push 失败先试直连 `git -c "http.https://github.com.proxy=" push`，都挂就定时重试
-- **CI**：全绿；**本地单测** `bash scripts/run-tests-local.sh` 124 用例全绿；每特性收尾本地 assembleDebug 出 APK + docs/App 内文案双同步（AGENTS.md 交付纪律 + L014）
+- **Release**：tag v* → release.yml 自动测试+出 APK+挂 GitHub Releases；**v0.2.31 在线**（签名统一版：仓库内 keystore/debug.keystore，任意来源 APK 可覆盖安装；versionCode=提交数/versionName=tag 号）。用户网络：代理 127.0.0.1:7890 间歇关闭，push 失败先试直连 `git -c "http.https://github.com.proxy=" push`，都挂就定时重试
+- **CI**：全绿；**本地单测** `bash scripts/run-tests-local.sh` 136 用例全绿；每特性收尾本地 assembleDebug 出 APK + docs/App 内文案双同步（AGENTS.md 交付纪律 + L014）
 - 进行中无未提交代码，工作区干净
-- 本段特性明细：M3 视觉教练（跟踪/警报/点评+TTS）、M4 跟练判定+曲线+互验、M5 曲库 Room v3+周复盘+音色向导、M6 扒谱基建（抽 PCM+弦品 DP）；F205 GP 导入（alphaTab 1.8.4 引入经目标确认）
+- 本段特性明细：M3 视觉教练（跟踪/警报/点评+TTS）、M4 跟练判定+曲线+互验、M5 曲库 Room v3+周复盘+音色向导、M6 扒谱基建（抽 PCM+弦品 DP）
+- **真机走查轮（2026-09-19）**：5 Tab 全过 + 扒谱全链路实测（Song 2：分离 23s/RMS 诊断、BPM 自动检出 129、198 音符进谱）+ 两 bug 修复（BACK 丢状态 E011、BPM 默认值架空自动检测 L025）；小米 14 无 TTS 引擎（语音点评静音，待装 TTS）；F205 GP 导入（alphaTab 1.8.4 引入经目标确认）
 
 ## 五、下一步（按优先级）
 
-1. **真机走查+验收**（adb 已通，agent 可自测大半）：逐功能实测清单在对话记录中；出谱质量调参需用户真机数据（分离诊断日志已埋）
+1. **出谱质量调参**：真机走查已过，剩余质量评估需用户真机听感/看谱数据（分离诊断日志已埋，读法：`adb logcat -s GuitarCoach` grep 分离诊断）
 2. **里程碑收口**：验收过 → M1 v0.2.0 收口（CHANGELOG 大版本 + versionName + ROADMAP）
 3. **Spleeter 深化**：分离质量调参（int8 模型精度边界内）；或按 DEBT-010 v3 路线自训 guitar-stem 模型（数周研究项目）
 4. F202 alphaTab 精渲染（DEBT-007）；melodia_trick 移植（DEBT-009）
 
 ## 六、待用户操作（阻塞项，别干等）
 
-- **小米 14 USB 连接**（授权 adb 调试）——M1+M2 全部真机验收的前置
+- **小米 14 安装 TTS 引擎**（讯飞语记 / Google TTS 任一并在系统设置设为默认）——语音点评（F303）与卡片点读（F208）的前置；当前 `tts_default_synth=null`，TTS init failed status=-1
 - 火山方舟控制台开通 `glm-5-3-flash-260828`（开通后按 docs/模型API接入手册.md §2.4 回补 3 项实测）
 - 可选：手机支架（M3 视觉教练外设）
 

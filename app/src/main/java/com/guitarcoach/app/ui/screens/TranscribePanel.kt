@@ -48,7 +48,8 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
     var progressText by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
-    var bpmText by remember { mutableStateOf("120") }
+    var bpmText by remember { mutableStateOf("") } // 默认空=自动检测（F706）；只有用户手输过才跳过检测
+    var bpmManuallyEdited by remember { mutableStateOf(false) } // 区分机器预填与用户手输（对抗审查 P1：防跨曲 BPM 污染）
     var enhance by remember { mutableStateOf(true) } // 吉他聚焦预处理：中央消除+带通（混音素材建议开）
     var truncated by remember { mutableStateOf(0) }
 
@@ -88,11 +89,11 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                             AudioPcmExtractor().extractToMono(fd.fileDescriptor, targetRate = 22050, enhance = false)
                         }
                     } ?: throw IllegalArgumentException("文件读取失败，请重试")
-                    // F706 BPM 自动检测：检出即预填并采用；用户手输值优先生效
-                    val bpm = if (bpmText.isBlank()) {
-                        (TempoDetector.detect(pcm.pcm, pcm.sampleRate) ?: 120).also { bpmText = it.toString() }
-                    } else {
+                    // F706 BPM：用户手输值优先；否则自动检测。检出失败不预填假值（检测值≠手输值，字段保持空下次仍走检测）
+                    val bpm = if (bpmManuallyEdited && bpmText.isNotBlank()) {
                         bpmText.toIntOrNull()?.coerceIn(40, 300) ?: 120
+                    } else {
+                        TempoDetector.detect(pcm.pcm, pcm.sampleRate)?.also { bpmText = it.toString() } ?: 120
                     }
                     progressText = "转写中…"
                     val engine = TranscriptionEngine(context)
@@ -153,7 +154,10 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                 }
                 OutlinedTextField(
                     value = bpmText,
-                    onValueChange = { bpmText = it.filter { c -> c.isDigit() }.take(3) },
+                    onValueChange = {
+                        bpmText = it.filter { c -> c.isDigit() }.take(3)
+                        bpmManuallyEdited = true
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text("BPM（留空=自动检测）") },
                     singleLine = true,
