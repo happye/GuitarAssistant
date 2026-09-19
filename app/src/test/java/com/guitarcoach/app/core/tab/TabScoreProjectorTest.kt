@@ -102,13 +102,31 @@ class TabScoreProjectorTest {
     }
 
     @Test
-    fun `时值取最近token_平手取普通时值`() {
+    fun `时值取最近token_无点分语法`() {
+        // alphaTex 1.8.4 不支持点分时值 token（:8. 真机解析 AT202 崩）——只允许普通时值
         assertEquals(":4", TabScoreProjector.durationToken(1.0))
         assertEquals(":8", TabScoreProjector.durationToken(0.5))
-        assertEquals(":4.", TabScoreProjector.durationToken(1.5))
-        assertEquals(":8.", TabScoreProjector.durationToken(0.75))
-        assertEquals(":16", TabScoreProjector.durationToken(0.3)) // 0.25 与 0.375 距离相等 → 取普通 :16
+        assertEquals(":2", TabScoreProjector.durationToken(1.5))
+        assertEquals(":4", TabScoreProjector.durationToken(0.75)) // 0.75 与 0.5/1.0 等距 → 取先列出的 :4
+        assertEquals(":16", TabScoreProjector.durationToken(0.3))
         assertEquals(":8", TabScoreProjector.durationToken(0.6))
+    }
+
+    @Test
+    fun `点分时值小节_round_trip守恒`() {
+        // 真机崩溃场景：0.75 拍（附点八分）与 1.5 拍混排——修复前生成 :8. 直接解析崩
+        val d = doc(
+            listOf(
+                NoteEvent(5, 0, 0.0, 0.75), NoteEvent(5, 1, 0.75, 0.75),
+                NoteEvent(5, 3, 1.5, 1.5), NoteEvent(5, 5, 3.0, 1.0),
+            ),
+        )
+        val back = roundTrip(d)
+        val b1 = back.sections[0].bars[0].notes
+        assertEquals(4, b1.size)
+        // 无点分 token 下 0.75/1.5 拍只能近似铺位（本批口径）：断言解析成功+首拍 0+拍位不回退
+        assertEquals(0.0, b1[0].beat, 1e-9)
+        assertTrue("拍位应不回退: " + b1.map { it.beat }, b1.zipWithNext().all { (a, b) -> b.beat >= a.beat })
     }
 
     @Test
@@ -121,5 +139,51 @@ class TabScoreProjectorTest {
         val tex = TabScoreProjector.toAlphaTex(d)
         assertTrue("\\ts 3 4" in tex)
         assertTrue("|" in tex)
+    }
+}
+
+class TabScoreProjectorScratchTest {
+    @Test
+    fun `复刻真机崩溃_填示例文档`() {
+        // 复刻 TextTabParser.parse(填示例) 的产物：90 BPM、8 个八分音符、单段 Main
+        val notes = mutableListOf<NoteEvent>()
+        val frets = listOf(3, 3, 0, 0, 2, 3, 3, 0)
+        val strings = listOf(1, 2, 3, 4, 5, 2, 1, 3)
+        for (k in 0 until 8) {
+            notes += NoteEvent(string = strings[k], fret = frets[k], beat = k * 0.5, duration = 1.0)
+        }
+        val d = TabDocument(title = null, tempo = 90, sections = listOf(TabSection("Main", listOf(TabBar(notes)))))
+        val tex = TabScoreProjector.toAlphaTex(d)
+        println("TEX>>>\n$tex<<<")
+        val score = TabScoreProjector.toScore(d, alphaTab.Settings())
+        assertTrue(score != null)
+    }
+}
+
+class TabScoreProjectorScratchTest2 {
+    @Test
+    fun `复刻真机崩溃_真实TextTabParser产物`() {
+        val example = """
+            e|--------------3---3--|
+            B|-----------3-----3---|
+            G|--------0----------0-|
+            D|-----0---------------|
+            A|--2------------------|
+            E|---------------------|
+        """.trimIndent()
+        val d = TextTabParser.parse(example)
+        val dbg = d.sections.joinToString(" || ") { sec ->
+            sec.name + " bars=" + sec.bars.size + " :: " + sec.bars.mapIndexed { bi, b ->
+                "bar" + bi + "[" + b.notes.joinToString(",") { it.string.toString() + ":" + it.fret + "@" + it.beat + "d" + it.duration } + "]"
+            }.joinToString(" ; ")
+        }
+        java.nio.file.Files.write(
+            java.nio.file.Paths.get("C:" + java.io.File.separator + "Users" + java.io.File.separator + "Crux" + java.io.File.separator + "AppData" + java.io.File.separator + "Local" + java.io.File.separator + "Temp" + java.io.File.separator + "doc_dump.txt"),
+            dbg.toByteArray(Charsets.UTF_8),
+        )
+        val tex = TabScoreProjector.toAlphaTex(d.copy(title = null, tempo = 90))
+        println("TEX2>>>" + tex.replace("\n", "|") + "<<<")
+        val score = TabScoreProjector.toScore(d.copy(title = null, tempo = 90), alphaTab.Settings())
+        assertTrue(score != null)
     }
 }

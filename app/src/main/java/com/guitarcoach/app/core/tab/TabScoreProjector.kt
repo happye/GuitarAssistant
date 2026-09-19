@@ -17,10 +17,9 @@ import alphaTab.importer.ScoreLoader
  */
 object TabScoreProjector {
 
-    /** 时值（拍）→ alphaTex 时值 token；点分支持 3/1.5/0.75/0.375；取最近，平手取普通时值。 */
+    /** 时值（拍）→ alphaTex 时值 token。1.8.4 解析器不支持点分 token（:8. → AT202 崩，真机实测），只用普通时值。 */
     private val DURATION_TOKENS: List<Pair<Double, String>> = listOf(
         4.0 to ":1", 2.0 to ":2", 1.0 to ":4", 0.5 to ":8", 0.25 to ":16", 0.125 to ":32",
-        3.0 to ":2.", 1.5 to ":4.", 0.75 to ":8.", 0.375 to ":16.",
     )
 
     fun durationToken(beats: Double): String {
@@ -38,8 +37,7 @@ object TabScoreProjector {
     }
 
     private fun tokenBeats(token: String): Double = when (token) {
-        ":1" -> 4.0; ":2." -> 3.0; ":2" -> 2.0; ":4." -> 1.5; ":4" -> 1.0
-        ":8." -> 0.75; ":8" -> 0.5; ":16." -> 0.375; ":16" -> 0.25; ":32" -> 0.125
+        ":1" -> 4.0; ":2" -> 2.0; ":4" -> 1.0; ":8" -> 0.5; ":16" -> 0.25; ":32" -> 0.125
         else -> 1.0
     }
 

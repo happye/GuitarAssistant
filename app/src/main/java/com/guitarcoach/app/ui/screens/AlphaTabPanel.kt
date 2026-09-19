@@ -72,7 +72,17 @@ fun AlphaTabPanel(doc: TabDocument, modifier: Modifier = Modifier) {
         AndroidView(
             factory = { ctx ->
                 AlphaTabView(ctx, null).apply { // XML 风格构造器（内部 inflate alphatab_view.xml）
-                    val score = TabScoreProjector.toScore(doc, settings)
+                    // 纸面：renderer 默认出浅色纸面，view 底色给白保证对比（深色 App 内嵌"纸"是常规形态）
+                    setBackgroundColor(android.graphics.Color.WHITE)
+                    // 投影失败不崩 App：落日志（tex 全文+诊断）并交由上层回退自绘视图
+                    val score = try {
+                        TabScoreProjector.toScore(doc, settings)
+                    } catch (e: Throwable) {
+                        // alphaTab 的 AlphaTabError 直接继承 Throwable（不是 Exception）——必须 catch Throwable
+                        val texDump = TabScoreProjector.toAlphaTex(doc)
+                        android.util.Log.e("GuitarCoach", "专业谱面投影失败 tex=<<<$texDump>>>", e)
+                        throw e
+                    }
                     val track = score.tracks.firstOrNull()
                     if (track != null) tracks = listOf(track)
                     api.playerStateChanged.on { st ->
