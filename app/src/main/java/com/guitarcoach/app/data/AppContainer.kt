@@ -52,6 +52,9 @@ class AppContainer(context: Context) {
     // 曲库（F502）：TabDocument 持久化 + 进度标记
     val songRepository by lazy { SongRepository(database.songDao()) }
 
+    // 扒谱管线编排（P0-1）：引擎/算法链在 data 层，UI 不直接触 audio（修 V4）
+    val transcription by lazy { com.guitarcoach.app.data.TranscriptionController(appContext) }
+
     fun shutdown() {
         appScope.cancel()
     }

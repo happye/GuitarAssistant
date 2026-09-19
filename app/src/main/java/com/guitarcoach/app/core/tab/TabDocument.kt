@@ -13,7 +13,10 @@ data class TabDocument(
     val title: String? = null,
     val tempo: Int = 90,
     val tuning: String = "E标准调弦",
+    val timeSignature: String = "4/4", // 拍号（GP 导入提取；扒谱 v1 固定 4/4）
     val sections: List<TabSection> = emptyList(),
+    /** 和弦级轨道（重构方案 §6.3）：混音素材的默认输出；空 = 纯音符谱。 */
+    val chordTrack: List<ChordEvent> = emptyList(),
 )
 
 @Serializable
@@ -29,6 +32,18 @@ data class NoteEvent(
     val beat: Double,              // 小节内起始拍（0 起）
     val duration: Double = 1.0,    // 占几拍
     val technique: String? = null, // palm_mute / hammer_on / pull_off / slide / bend / vibrato / mute / harmonic
+    val lowConfidence: Boolean = false, // P0-8：量化超差/低置信音（UI 热图标记）
+)
+
+/** 和弦事件（ChordTracker 产出）：全局拍位 + 级别 + 展示名（如 "C"、"E5"、"Am"）。 */
+@Serializable
+data class ChordEvent(
+    val beat: Double,            // 全局拍位（0 起，跨小节累计）
+    val durationBeats: Double,
+    val root: String,            // "C".."B"（升调用 #）
+    val quality: String,         // "maj" | "min" | "5" | "7" | "maj7" | "m7" | "sus4"
+    val display: String,         // 展示名（root+quality 渲染串）
+    val confidence: Float = 1.0f,
 )
 
 /** 标准调弦下 1~6 弦空弦的 MIDI 音高：E4 B3 G3 D3 A2 E2（唯一信源在 core/music/Tunings，此处为口径别名）。 */

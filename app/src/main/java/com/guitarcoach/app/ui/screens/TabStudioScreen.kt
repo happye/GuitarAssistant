@@ -71,7 +71,7 @@ fun TabStudioScreen(container: AppContainer) {
 
     // —— 展示与编辑 ——
     var editTarget by remember { mutableStateOf<Pair<Int, Int>?>(null) } // F203：sectionIndex to barIndex
-    var showRender by rememberSaveable { mutableStateOf(false) } // F202：展示模式（列表 / 谱面渲染）
+    var renderMode by rememberSaveable { mutableStateOf(0) } // 展示模式：0=列表 1=自绘谱面（点按试听）2=专业谱面（alphaTab，重构 A2/A3）
 
     fun extractFrom(uri: Uri) {
         scope.launch {
@@ -216,15 +216,16 @@ fun TabStudioScreen(container: AppContainer) {
                 explainText = null
                 error = null
                 document = doc
-                showRender = true
+                renderMode = 2 // 扒谱完成直接看专业谱面（A2/A3）
             })
         }
 
         // 展示（拍谱结果优先，其次文本谱/GP 结果）；F203 编辑回写；F202 谱面渲染与点按试听；F502 曲库
         (extracted?.document ?: document)?.let { doc ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                FilterChip(selected = !showRender, onClick = { showRender = false }, label = { Text("列表") })
-                FilterChip(selected = showRender, onClick = { showRender = true }, label = { Text("谱面（点按试听）") })
+                FilterChip(selected = renderMode == 0, onClick = { renderMode = 0 }, label = { Text("列表") })
+                FilterChip(selected = renderMode == 1, onClick = { renderMode = 1 }, label = { Text("自绘谱面") })
+                FilterChip(selected = renderMode == 2, onClick = { renderMode = 2 }, label = { Text("专业谱面") })
                 SongLibrarySection(
                     container = container,
                     currentDoc = doc,
@@ -233,14 +234,14 @@ fun TabStudioScreen(container: AppContainer) {
                         imageBase64 = null
                         explainText = null
                         document = loaded
-                        showRender = false
+                        renderMode = 0
                     },
                 )
             }
-            if (showRender) {
-                TabRenderPanel(doc, modifier = Modifier.weight(1f))
-            } else {
-                ParsedTabList(doc, modifier = Modifier.weight(1f), onEditBar = { s, b -> editTarget = s to b })
+            when (renderMode) {
+                2 -> AlphaTabPanel(doc, modifier = Modifier.weight(1f))
+                1 -> TabRenderPanel(doc, modifier = Modifier.weight(1f))
+                else -> ParsedTabList(doc, modifier = Modifier.weight(1f), onEditBar = { s, b -> editTarget = s to b })
             }
         }
     }

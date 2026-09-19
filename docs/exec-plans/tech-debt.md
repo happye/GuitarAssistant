@@ -50,11 +50,10 @@
 - `app/src/main/assets/nmp.tflite`（204KB）= spotify/basic-pitch 0.4.0（Apache-2.0）PyPI wheel 内 `saved_models/icassp_2022/nmp.tflite`，ICASSP 2022 论文模型（"A Lightweight Instrument-Agnostic Model for Polyphonic Note Transcription"，arXiv:2203.09893）
 - 输入 [1,43844,1] float @22050Hz；输出 contours[172,264]/notes[172,88]/onsets[172,88]；2026-09-17 onnxruntime 本机实测 440Hz→midi69 精确命中 + 用户素材（Blur-Song 2）端到端 166 音符
 
-## DEBT-007：谱面渲染升级 alphaTab 引擎（评估项，2026-09-17）
+## DEBT-007：谱面渲染升级 alphaTab 引擎（已偿还 2026-09-19，重构 A2/A3）
 
-- 现状：F202 v2 为自绘精修（参考 Songsterr/alphaTab 记谱惯例：品数落线/拍位比例展开/技巧记号/段落条），观感已可用
-- 升级路径：alphaTab 1.8.4 完整渲染需要 AlphaSkia 原生库（额外 .so，APK +10~20MB）+ Bravura.otf 字体入 assets + AlphaSkiaAndroid 初始化链；已实探 classes.jar/sources 确认可行性，未引入
-- 偿还条件：用户对自绘观感仍不满意，或需要五线谱双谱/复杂拍号/回放光标时立项
+- **已偿还**：AlphaTabPanel（AndroidView 包 AlphaTabView）+ TabScoreProjector（TabDocument→alphaTex→Score 投影）+ AlphaSynth 播放/点按试听/光标上线（v0.2.33）；AlphaSkia 原生库系 alphaTab 传递依赖**早已随包**（+15MB 估算作废）；自绘 TabRenderPanel 保留双渲染切换（D5）
+- 遗留：低置信音在专业视图的着色（alphaTab note style API 未接）；多轨/五线谱双谱未做（TabDocument 单轨口径）
 
 ## DEBT-008：对抗性审查 P2 余项（2026-09-17，来源 .learnings/adversarial-review-2026-09-17b.md）
 
@@ -74,11 +73,12 @@
 - 当前链路（v0.2.25）：MP3→MediaCodec PCM→线性重采样 22050（无抗混叠，已知限制）→TFLite 2s 窗→NoteDecoder v2（官方 output_to_notes_polyphonic 移植）→弦品 DP
 - 精度损失归因排序：①素材（全频段混音超出模型能力，官方论文用单乐器评估）②melodia_trick 未移植（官方默认开，对 melodic line 有增益）③重采样质量
 - 升级路径（按收益/成本）：
-  1. 素材引导（零成本）：清音/dry 单音吉他直录素材，避开混音
-  2. melodia_trick 移植（中）：官方默认开启，对旋律线连续性有增益
-  3. 抗混叠重采样（小）：soxr 级质量需自研多相滤波器
-  4. GuitarSet 微调蒸馏（大，中期最优）：需 Python 训练链
-  5. MT3 系大模型（不可行）：百 MB 级
+  1. 素材引导（零成本）：清音/dry 单音吉他直录素材，避开混音 → **已产品化 2026-09-19**（InputClassifier 路由 + 和弦级输出）
+  2. melodia_trick 移植（中）：官方默认开启，对旋律线连续性有增益 —— **维持待办**：需把激活矩阵旁路出 NoteDecoder（当前解码后即弃），属 NoteDecoder v3 范畴；2026-09-19 重构轮评估后暂缓（无审查代理兜底不做深算法改动）
+  3. 抗混叠重采样（小→**修正为中大**）：窗函数 sinc 需改造 StreamingResampler 跨块窗口（L016 逐点一致性契约 + 尾块 flush 语义 + AudioPcmExtractor 调用点三处联动），2026-09-19 实现一版后主动回滚（复杂度失控止损）；**维持待办**，需单独立项+回归全量验证
+  4. GuitarSet 微调蒸馏（大，中期最优）：需 Python 训练链 → 与重构 Phase 1 弦品模型特化（TabCNN/FretNet+GOAT）合并评估（D7 待用户拍板）
+  5. MT3 系大模型（不可行）：百 MB 级 → 重构调研维持结论（端侧不可达）；云端按次走 Phase 2（D1 待拍板）
+  6. **新增已做 2026-09-19**：转写窗 50% 重叠+跨窗合并（边界音）、逐拍跟踪 BeatTracker、音符清洗 NoteCleaner、和弦级 ChordTracker——见 rework-plan-2026-09-19.md
 
 ## DEBT-010：吉他分离立项评估结论（2026-09-17，调研报告 .learnings/research-f602-tone-2026-09-17.md 补充轮）
 

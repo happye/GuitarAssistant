@@ -3,6 +3,15 @@
 > Agent 交接 artifact。每次会话收尾必更新：做了什么 / 当前特性状态 / 下一步建议。
 > 特性状态唯一信源是 `feature_list.json`；里程碑范围与验收标准见 `docs/开发方案.md` §9。
 
+## 2026-09-19 - Session 4: 重构第二批（Phase A 全量 + Phase 0 剩余，v0.2.33）
+
+- **Phase A 专业谱面落地**：A0 spike（classes.jar 级核实 alphaTab API，AlphaTabView/AlphaSynth/BoundsLookup/PlaybackRange 全在，AlphaSkia 系传递依赖早已随包）；A1 TabScoreProjector（TabDocument→alphaTex→Score，round-trip 单测守恒段落/拍位/弦品/时值/技巧/拍号；`\section` 实测支持、首段名必须放头部否则出空小节）；A2/A3 AlphaTabPanel（AndroidView，整段播放/点音符试听/光标）；识谱台三态（列表/自绘/专业）；F202 置 done
+- **Phase 0 剩余落地**：P0-7 ChordTracker（拍同步 chroma+模板匹配+短段吸收；修窗界渗入 bug——音符恰在窗界会造出假过渡和弦）+ InputClassifier（复音率/跨度分级）+ TabDocument.chordTrack/timeSignature 字段（SongRepository ignoreUnknownKeys 零迁移）；P0-1 TranscriptionController（管线下沉 data 层，修 V4）；P0-8 置信度热图（自绘红块+列表 ⚠）；A4 GP 拍号提取（修 V7）
+- **P0-9**：①窗 50% 重叠+跨窗同音合并 done；②melodia_trick、③抗混叠重采样——实现一版后主动回滚（流式 sinc 跨块窗口三处联动复杂度失控，无审查代理兜底），维持 DEBT-009 待办并附风险分析（第三轮失败原则前置止损）
+- **纪律调整（用户指示）**：监督员与对抗审查门禁停用（HANDOFF/记忆已同步，新会话勿重建）
+- 验证: 本地 166/166 单测全绿；assembleDebug 通过（120.5MB）；**真机验证待用户重新接线**（设备中途离线，专业谱面/播放/和弦行未上机走查——恢复后第一件事）
+- Next: 真机验证 → Phase 1 htdemucs_6s PoC（模型转换需 PC 环境）→ D1 云端拍板
+
 ## 2026-09-19 - Session 3: 用户暴怒反馈轮（版本号/预期管理）+ 洁癖清理 + Phase A 提前
 
 - 用户实测 v0.2.32 后暴怒：①本地包版本号永远显示 0.2.10 无法分辨新旧 ②谱面"没变化还是烂" ③裸数字谱"不像吉他谱" ④叫停了监督员与审查代理

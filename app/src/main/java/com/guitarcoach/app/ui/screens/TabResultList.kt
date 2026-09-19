@@ -86,7 +86,7 @@ internal fun ParsedTabList(
                     } else {
                         Text(
                             row.bar.notes.joinToString("  ") { note ->
-                                "${note.string}弦${note.fret}品(${midiToName(note.midi())})"
+                                (if (note.lowConfidence) "⚠" else "") + "${note.string}弦${note.fret}品(${midiToName(note.midi())})"
                             },
                             style = MaterialTheme.typography.bodySmall,
                         )

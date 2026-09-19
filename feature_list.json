@@ -1,439 +1,439 @@
 {
-  "project": "吉他学习助手（GuitarCoach）",
-  "version": "0.1.0",
-  "updated_at": "2026-09-17",
-  "source": "README「当前状态」表 + docs/开发方案.md §9 里程碑路线图（验收标准同源）",
-  "conventions": {
-    "status": "done | pending（done 必须同时 passes=true）",
-    "milestone": "M0-M5，顺序与范围以 docs/开发方案.md §9 为准",
-    "test_criteria": "可复现的验证方式：单元测试 / adb 截图与 logcat / 真机操作步骤",
-    "rule": "一次只做一个 pending 特性；测试通过后才允许把 status 改为 done"
+ "project": "吉他学习助手（GuitarCoach）",
+ "version": "0.1.0",
+ "updated_at": "2026-09-17",
+ "source": "README「当前状态」表 + docs/开发方案.md §9 里程碑路线图（验收标准同源）",
+ "conventions": {
+  "status": "done | pending（done 必须同时 passes=true）",
+  "milestone": "M0-M5，顺序与范围以 docs/开发方案.md §9 为准",
+  "test_criteria": "可复现的验证方式：单元测试 / adb 截图与 logcat / 真机操作步骤",
+  "rule": "一次只做一个 pending 特性；测试通过后才允许把 status 改为 done"
+ },
+ "features": [
+  {
+   "id": "F001",
+   "milestone": "M0",
+   "name": "工程骨架与 5 Tab Compose UI",
+   "description": "Gradle 工程骨架 + 底部导航五页（首页/练习室/识谱/乐理/我的）+ 主题，App 可安装启动",
+   "priority": 1,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "assembleDebug 出 APK，安装后能启动并在五个 Tab 间切换"
   },
-  "features": [
-    {
-      "id": "F001",
-      "milestone": "M0",
-      "name": "工程骨架与 5 Tab Compose UI",
-      "description": "Gradle 工程骨架 + 底部导航五页（首页/练习室/识谱/乐理/我的）+ 主题，App 可安装启动",
-      "priority": 1,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "assembleDebug 出 APK，安装后能启动并在五个 Tab 间切换"
-    },
-    {
-      "id": "F002",
-      "milestone": "M0",
-      "name": "LLM 网关（流式 + 视觉 + 路由）",
-      "description": "OpenAiCompatClient（SSE 流式、图片 base64、json_object 降级）+ ModelRouter（快答/深思/视觉三条链式降级，DeepSeek 主力、方舟 GLM 文本备份），设置页改 Key/baseUrl 即生效",
-      "priority": 2,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "填入两个 Key 后点「测试连通」各返回一条 AI 回答；断网/错 Key 有可读错误提示"
-    },
-    {
-      "id": "F003",
-      "milestone": "M0",
-      "name": "教练编排器三条链路",
-      "description": "CoachOrchestrator：拍谱讲解（流式）/ 手势点评（结构化 JSON）/ 乐理问答（多轮流式），带逐级备份降级",
-      "priority": 3,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "三条链路各跑通一次；主模型不可用时自动切到备份模型"
-    },
-    {
-      "id": "F004",
-      "milestone": "M0",
-      "name": "谱面引擎：TabDocument + 文本解析 + LLM 识谱管线",
-      "description": "统一谱面数据模型 TabDocument、TextTabParser v0（UG 风格 ASCII tab）、LlmTabExtractor（视觉→严格 JSON→合法性过滤：弦 1-6 / 品 0-24）",
-      "priority": 4,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "粘贴一段 UG 文本谱可解析出 sections/bars/notes；非法 JSON 输入被过滤不崩溃"
-    },
-    {
-      "id": "F005",
-      "milestone": "M0",
-      "name": "MPM 调音器",
-      "description": "麦克风采样 → MPM 音高检测（4096 点 @44.1kHz、抗八度错误、抛物线插值）→ 音名与音分偏差提示",
-      "priority": 5,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "真机拨空弦，屏幕显示正确音名且偏差随调弦收敛到 ±5 音分内"
-    },
-    {
-      "id": "F101",
-      "milestone": "M1",
-      "name": "乐理聊天页（流式 + 多轮历史）",
-      "description": "TheoryScreen 接 CoachOrchestrator.askTheory：流式渲染、会话历史、错误兜底文案",
-      "priority": 10,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "问「降key是什么」得到符合开发方案 §8.4 固定结构（原调→新调→操作→听感→小练习）的流式回答；断开网络有友好提示"
-    },
-    {
-      "id": "F102",
-      "milestone": "M1",
-      "name": "乐理概念卡片（8 个高频问题）",
-      "description": "按痛点调研清单做常用概念卡片：六线谱怎么看/变调夹/大小调/五声音阶/琶音/杂音/效果器参数/和弦构成",
-      "priority": 11,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "8 张卡片可点开，内容覆盖问题并落到具体操作（哪一品、怎么按）"
-    },
-    {
-      "id": "F103",
-      "milestone": "M1",
-      "name": "指板可视化",
-      "description": "点一个音名看全指板位置（基于 TabDocument 同源的 MIDI 计算）",
-      "priority": 12,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "选 C 在 6 弦到 1 弦各把位标出全部 C；与 midiToName 换算一致"
-    },
-    {
-      "id": "F104",
-      "milestone": "M1",
-      "name": "文本谱粘贴解析 + 谱面展示",
-      "description": "粘贴 UG 风格文本谱 → TextTabParser → 简易谱面渲染（M1 先自绘/列表化展示，M2 换 alphaTab 精渲染）",
-      "priority": 13,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "粘贴含调弦标记与 ≥4 小节的 UG 谱可显示弦/品/小节结构；解析失败给可读错误"
-    },
-    {
-      "id": "F105",
-      "milestone": "M1",
-      "name": "节拍器",
-      "description": "BPM 可调节拍器（AudioTrack/Oscillator 合成拍点音，0-9 拍重音可配）",
-      "priority": 14,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "40-240 BPM 范围设定节拍稳定无漂移；切后台不崩、回前台可停"
-    },
-    {
-      "id": "F106",
-      "milestone": "M1",
-      "name": "练习记录（Room）",
-      "description": "Room 表：练习记录（日期/时长/内容/调音与手型问题留档）+ 练习室计时入口",
-      "priority": 15,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "练习 5 分钟后「我的」页出现一条记录，重启 App 数据仍在"
-    },
-    {
-      "id": "F107",
-      "milestone": "M1",
-      "name": "对话管理（多会话 + 重命名/删除 + Room 持久化）",
-      "description": "Room 会话表+消息表（级联删除、单事务落库）；聊天页多会话切换/新建/重命名/删除（带确认）；会话标题自动取首问；流式期间删会话的落库容错（L010/L011 延伸）；用户需求 2026-09-15",
-      "priority": 16,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "两会话各自独立历史；重命名后重启仍在；删除会话连消息一起删；流式中删会话不崩溃"
-    },
-    {
-      "id": "F201",
-      "milestone": "M2",
-      "name": "拍照/选图识谱管线",
-      "description": "CameraX 拍照或相册选图 → FrameCodec 压缩 → LlmTabExtractor（视觉链）→ 合法性过滤 → TabDocument",
-      "priority": 20,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "对书页/屏幕截图/打印谱三类来源识谱可用率达到开发方案 §9 M2 验收标准；可重拍重试"
-    },
-    {
-      "id": "F202",
-      "milestone": "M2",
-      "name": "alphaTab 谱面渲染与点按试听",
-      "description": "AndroidView 包装 alphaTab 1.8.4 渲染 TabDocument，点按音符试听（内置 SoundFont 合成）",
-      "priority": 21,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "TabDocument 渲染与源谱一致；点按某音发声且音高与 midi() 换算一致",
-      "notes": "；2026-09-17 用户反馈后 v2 观感精修（Songsterr 惯例）+ 4/4 拍位口径"
-    },
-    {
-      "id": "F203",
-      "milestone": "M2",
-      "name": "识别结果编辑修正",
-      "description": "识谱结果可手动改弦/品/小节后保存回 TabDocument（识别与讲解分离的兜底）",
-      "priority": 22,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "改一个错的品位后保存，重新渲染与讲解都基于修正后的数据"
-    },
-    {
-      "id": "F204",
-      "milestone": "M2",
-      "name": "拍谱讲解（基于结构化数据）",
-      "description": "讲解基于 TabDocument 结构化数据 + 谱图，输出按弦/拨弦/技巧说明与练习建议",
-      "priority": 23,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "同一段谱两次讲解结论一致（不重新看图重讲）；说明能指导实际按弦"
-    },
-    {
-      "id": "F205",
-      "milestone": "M2",
-      "name": "Guitar Pro 导入",
-      "description": "alphaTab 导入 .gp3~.gp8 → TabDocument（唯一谱面数据模型）",
-      "priority": 24,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "导入 3 个不同版本 GP 文件，弦/品/拍与源文件抽查一致"
-    },
-    {
-      "id": "F206",
-      "milestone": "M2",
-      "name": "移调/变调夹计算器",
-      "description": "原调→新调换算、变调夹夹几品换指法（乐理计算移植 tonal.js/teoria.js 思路到 Kotlin）",
-      "priority": 25,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "已知输入算已知输出：C→G 上移 5 品等 ≥10 组用例全对（单元测试）"
-    },
-    {
-      "id": "F207",
-      "milestone": "M2",
-      "name": "逐句大白话讲解管线（图片谱，调研定稿 2026-09-15）",
-      "description": "路线 B：识谱→TabDocument→先规划全曲乐句分段→逐句生成讲解（总述/左手/右手/术语大白话/难点/自查）；CoVe 覆盖审计防漏音：讲解后剥离文本仅凭 TabDocument 重列音符清单做集合比对，不一致重试",
-      "priority": 26,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "对含 ≥20 音的样例谱：覆盖审计 0 漏音 0 重复；每句含 finger 字段；术语首现带一句解释（抽样人工核对）"
-    },
-    {
-      "id": "F208",
-      "milestone": "M2",
-      "name": "乐句卡片式点读 UI",
-      "description": "讲解以乐句卡片流展示（2-4 小节/句），卡片配小节序号与原图对照；点单个音符只讲该音（音符级点读兜底）；整段系统 TTS 朗读",
-      "priority": 27,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "逐句卡片可点开/朗读；点任意音符能获得该音的弦/品/手指讲解；讲解结果本地缓存可离线回看"
-    },
-    {
-      "id": "F209",
-      "milestone": "M2",
-      "name": "自动指法分配（DP）",
-      "description": "自研动态规划：弦/品序列→左手手指编号(0-4)与把位建议；代价=换弦/跨把位/手指伸展/同把位优先；LLM 生成的指法必须过规则校验（同品异弦不得同指等）",
-      "priority": 28,
-      "status": "done",
-      "passes": true,
-      "test_criteria": "爬格子/C-Am-G-F 和弦进行等 ≥10 组用例指法符合常识（单元测试）；非法指法被规则校验拦截"
-    },
-    {
-      "id": "F301",
-      "milestone": "M3",
-      "name": "相机实时手部跟踪叠加",
-      "description": "CameraX ImageAnalysis + MediaPipe HandLandmarker（LIVE_STREAM、GPU delegate）→ Canvas 骨架叠加",
-      "priority": 30,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "近五年机型上 ≥30fps 实时叠加；手出画面时叠加消失且给出引导"
-    },
-    {
-      "id": "F302",
-      "milestone": "M3",
-      "name": "姿势规则警报（0ms 层）",
-      "description": "角度阈值判定：折腕（肘-腕-食指 MCP < 165°）、指尖-关节塌陷、拇指位置分区、双手在框检测",
-      "priority": 31,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "刻意折腕/塌指在 1 秒内出警报；正常手型不误报（误报率开发方案 §9 M3 可接受）"
-    },
-    {
-      "id": "F303",
-      "milestone": "M3",
-      "name": "关键帧 AI 点评 + TTS 播报",
-      "description": "手在框内 + 每 90~120s（或姿势突变）采 1~3 帧 → reviewHandFrames（JSON）→ 卡片 + 系统 TTS 播报",
-      "priority": 32,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "练习中获得可执行的点评（单次 ≤2 条）；手不在画面时不产生幻觉点评"
-    },
-    {
-      "id": "F401",
-      "milestone": "M4",
-      "name": "riff 跟练对错判定",
-      "description": "目标音序列 vs 实测音序列（MPM）时序对齐判定，标出错音/节奏偏差",
-      "priority": 40,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "弹对简单 riff 判对；故意错一个音能指出第几拍错、高了还是低了"
-    },
-    {
-      "id": "F402",
-      "milestone": "M4",
-      "name": "推弦/揉弦音高曲线",
-      "description": "MPM 连续音高追踪 → 曲线可视化；闷音/杂音频谱特征提示",
-      "priority": 41,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "全音推弦曲线显示 ≈2 半音爬升；静音拨弦识别为闷音"
-    },
-    {
-      "id": "F403",
-      "milestone": "M4",
-      "name": "视听互验",
-      "description": "视觉参考品位与音频实测不一致时以音频为准并提示检查（本项目差异化点）",
-      "priority": 42,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "构造按着 C 弹出 E 的场景，App 报音频结论并提示核对"
-    },
-    {
-      "id": "F404",
-      "milestone": "M4",
-      "name": "手位标定（支架 + 低把位约束）",
-      "description": "琴颈斜前 45° 引导页 + 低把位（前 5 品）约束下的参考品位显示（高置信度才显示并标注「参考」）",
-      "priority": 43,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "固定机位下低把位参考品位与实际 ±1 品内；超约束场景明确不显示"
-    },
-    {
-      "id": "F501",
-      "milestone": "M5",
-      "name": "AI 周复盘",
-      "description": "DeepSeek 读一周 Room 记录 → 本周练了什么/哪里进步/下周建议（晚间跑，省高峰差价）",
-      "priority": 50,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "有 7 天记录时生成的复盘含可执行建议且引用真实练习数据，无编造"
-    },
-    {
-      "id": "F502",
-      "milestone": "M5",
-      "name": "曲库管理",
-      "description": "TabDocument 持久化曲目库 + 进度标记（在学/已会/搁置）",
-      "priority": 51,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "保存/搜索/标记进度可用，重启后数据完整"
-    },
-    {
-      "id": "F503",
-      "milestone": "M5",
-      "name": "音色向导",
-      "description": "说「想要 Metallica 那种音」→ 深思链推荐效果器参数并逐条解释",
-      "priority": 52,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "至少 3 种目标音色给出 Gain/Delay/Reverb 等参数且每条带人话解释"
-    },
-    {
-      "id": "F504",
-      "milestone": "M5",
-      "name": "Realtime 接口实验（观察项）",
-      "description": "评估 GLM-Realtime 类接口可用性/价格/质量，决定是否试验全双工语音（技术方案 §5.1 观望项）",
-      "priority": 53,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "产出一份评估记录（延迟/成本/质量三指标实测），再决定做或不做——不做也算完成"
-    },
-    {
-      "id": "F601",
-      "milestone": "M6",
-      "name": "扒谱：音视频输入与抽音频",
-      "description": "用户选音频/视频文件 → Media3/MediaExtractor 抽取 PCM（不引入已退役的 FFmpeg-kit）→ 重采样到转写模型所需格式；UI 引导录制/选择干净吉他素材",
-      "priority": 60,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "mp3/m4a/mp4 三种输入均能抽出正确时长的 16k/22k 单声道 PCM"
-    },
-    {
-      "id": "F602",
-      "milestone": "M6",
-      "name": "扒谱：端侧音频转写（basic-pitch ONNX）",
-      "description": "basic-pitch 转子 onnxruntime-android：音频→MIDI 音符事件（含时间戳）；模型随包或首启下载；主打干净单音/分解和弦场景（调研结论：失真与混音是天花板，不承诺）",
-      "priority": 61,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "10 秒干净单音 riff 在中端机型（小米 14 基线）转写 < 60s；音高正确率抽检 ≥80%"
-    },
-    {
-      "id": "F603",
-      "milestone": "M6",
-      "name": "扒谱：弦品分配 DP + TabDocument 生成",
-      "description": "MIDI 音符→弦/品分配（代价=换弦/跨把位/伸展，与 F209 共用 DP 内核）→节拍量化（端侧 onset+测速起步）→TabDocument 入曲库；保留原始时间戳回退视图",
-      "priority": 62,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "合成的已知 MIDI 序列转 tab 正确率抽检；结果可在识谱工作台展示与讲解"
-    },
-    {
-      "id": "F604",
-      "milestone": "M6",
-      "name": "扒谱：云端增强（可选付费）",
-      "description": "Demucs 音源分离 + madmom 节拍量化的云端管线（GPU 按量，预估单次 0.1-0.5 元）；失真/混音素材的『高清模式』；上线前先做成本与法务（版权免责声明）评估",
-      "priority": 63,
-      "status": "pending",
-      "passes": false,
-      "test_criteria": "同一素材端侧 vs 云端对比报告（正确率/成本/耗时），并给出上线/不上线决策记录"
-    },
-    {
-      "id": "F701",
-      "milestone": "M7",
-      "title": "和弦库：28 个常用和弦指板图 + 琶音试听 + 指法信息（乐理页入口）",
-      "status": "done",
-      "passes": true,
-      "test_criteria": "数据测试：开放和弦标准把位/横按平移/强力和弦/全部形状合法（ChordLibraryTest 4 用例）"
-    },
-    {
-      "id": "F702",
-      "milestone": "M7",
-      "title": "跟练游戏化：星级（3/2/1 按命中率）+ 最长连击显示",
-      "status": "done",
-      "passes": true,
-      "test_criteria": "RiffMatcher 判定数据驱动，UI 层展示；逻辑随 F401 单测覆盖"
-    },
-    {
-      "id": "F703",
-      "milestone": "M7",
-      "title": "速度训练提示：命中率 ≥90% 时提示渐进提速（×1.1 BPM）",
-      "status": "done",
-      "passes": true,
-      "test_criteria": "纯展示提示，BPM 计算 clamp 240；逻辑随 F401 覆盖"
-    },
-    {
-      "id": "F704",
-      "milestone": "M7",
-      "title": "调音器调弦预设（7 种）+ 音分表盘（±50 指针/±5 绿区）+ 动态认弦",
-      "status": "done",
-      "passes": true,
-      "test_criteria": "Tunings 数据 7 项各 6 值；nearestString 换 tuning 即刻生效（引擎逻辑，真机验证认弦体验）"
-    },
-    {
-      "id": "F705",
-      "milestone": "M7",
-      "title": "节拍器高级化：每拍细分 ×1-4 + 预备拍 count-in + 重音 pattern（引擎层）",
-      "status": "done",
-      "passes": true,
-      "test_criteria": "引擎生成逻辑（子拍弱音/count-in 高音/pattern 循环）随 UI 实测；AudioTrack 时基不变"
-    },
-    {
-      "id": "F706",
-      "milestone": "M7",
-      "title": "BPM 自动检测：onset 自相关 + 八度折叠（70-180），扒谱留空即自动检测",
-      "status": "done",
-      "passes": true,
-      "test_criteria": "合成节拍 120/90/160BPM 检出 ±2；44100 重采样口径；过短/静音返回 null（TempoDetectorTest 5 用例）"
-    },
-    {
-      "id": "F708",
-      "milestone": "M7",
-      "title": "播放光标跟随 + 自动滚动（Songsterr 式）：TonePlayer 进度流 → 当前小节高亮 + 跟拍滚动；单音试听不触发",
-      "status": "done",
-      "passes": true,
-      "test_criteria": "进度流随写推进（阻塞写准同步）；同小节滚动节流；UI 层验证"
-    },
-    {
-      "id": "F709",
-      "milestone": "M7",
-      "title": "首页快捷导航：识谱/练习室/乐理直达按钮",
-      "status": "done",
-      "passes": true,
-      "test_criteria": "导航路由正确（launchSingleTop）；UI 验证"
-    }
-  ]
+  {
+   "id": "F002",
+   "milestone": "M0",
+   "name": "LLM 网关（流式 + 视觉 + 路由）",
+   "description": "OpenAiCompatClient（SSE 流式、图片 base64、json_object 降级）+ ModelRouter（快答/深思/视觉三条链式降级，DeepSeek 主力、方舟 GLM 文本备份），设置页改 Key/baseUrl 即生效",
+   "priority": 2,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "填入两个 Key 后点「测试连通」各返回一条 AI 回答；断网/错 Key 有可读错误提示"
+  },
+  {
+   "id": "F003",
+   "milestone": "M0",
+   "name": "教练编排器三条链路",
+   "description": "CoachOrchestrator：拍谱讲解（流式）/ 手势点评（结构化 JSON）/ 乐理问答（多轮流式），带逐级备份降级",
+   "priority": 3,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "三条链路各跑通一次；主模型不可用时自动切到备份模型"
+  },
+  {
+   "id": "F004",
+   "milestone": "M0",
+   "name": "谱面引擎：TabDocument + 文本解析 + LLM 识谱管线",
+   "description": "统一谱面数据模型 TabDocument、TextTabParser v0（UG 风格 ASCII tab）、LlmTabExtractor（视觉→严格 JSON→合法性过滤：弦 1-6 / 品 0-24）",
+   "priority": 4,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "粘贴一段 UG 文本谱可解析出 sections/bars/notes；非法 JSON 输入被过滤不崩溃"
+  },
+  {
+   "id": "F005",
+   "milestone": "M0",
+   "name": "MPM 调音器",
+   "description": "麦克风采样 → MPM 音高检测（4096 点 @44.1kHz、抗八度错误、抛物线插值）→ 音名与音分偏差提示",
+   "priority": 5,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "真机拨空弦，屏幕显示正确音名且偏差随调弦收敛到 ±5 音分内"
+  },
+  {
+   "id": "F101",
+   "milestone": "M1",
+   "name": "乐理聊天页（流式 + 多轮历史）",
+   "description": "TheoryScreen 接 CoachOrchestrator.askTheory：流式渲染、会话历史、错误兜底文案",
+   "priority": 10,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "问「降key是什么」得到符合开发方案 §8.4 固定结构（原调→新调→操作→听感→小练习）的流式回答；断开网络有友好提示"
+  },
+  {
+   "id": "F102",
+   "milestone": "M1",
+   "name": "乐理概念卡片（8 个高频问题）",
+   "description": "按痛点调研清单做常用概念卡片：六线谱怎么看/变调夹/大小调/五声音阶/琶音/杂音/效果器参数/和弦构成",
+   "priority": 11,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "8 张卡片可点开，内容覆盖问题并落到具体操作（哪一品、怎么按）"
+  },
+  {
+   "id": "F103",
+   "milestone": "M1",
+   "name": "指板可视化",
+   "description": "点一个音名看全指板位置（基于 TabDocument 同源的 MIDI 计算）",
+   "priority": 12,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "选 C 在 6 弦到 1 弦各把位标出全部 C；与 midiToName 换算一致"
+  },
+  {
+   "id": "F104",
+   "milestone": "M1",
+   "name": "文本谱粘贴解析 + 谱面展示",
+   "description": "粘贴 UG 风格文本谱 → TextTabParser → 简易谱面渲染（M1 先自绘/列表化展示，M2 换 alphaTab 精渲染）",
+   "priority": 13,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "粘贴含调弦标记与 ≥4 小节的 UG 谱可显示弦/品/小节结构；解析失败给可读错误"
+  },
+  {
+   "id": "F105",
+   "milestone": "M1",
+   "name": "节拍器",
+   "description": "BPM 可调节拍器（AudioTrack/Oscillator 合成拍点音，0-9 拍重音可配）",
+   "priority": 14,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "40-240 BPM 范围设定节拍稳定无漂移；切后台不崩、回前台可停"
+  },
+  {
+   "id": "F106",
+   "milestone": "M1",
+   "name": "练习记录（Room）",
+   "description": "Room 表：练习记录（日期/时长/内容/调音与手型问题留档）+ 练习室计时入口",
+   "priority": 15,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "练习 5 分钟后「我的」页出现一条记录，重启 App 数据仍在"
+  },
+  {
+   "id": "F107",
+   "milestone": "M1",
+   "name": "对话管理（多会话 + 重命名/删除 + Room 持久化）",
+   "description": "Room 会话表+消息表（级联删除、单事务落库）；聊天页多会话切换/新建/重命名/删除（带确认）；会话标题自动取首问；流式期间删会话的落库容错（L010/L011 延伸）；用户需求 2026-09-15",
+   "priority": 16,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "两会话各自独立历史；重命名后重启仍在；删除会话连消息一起删；流式中删会话不崩溃"
+  },
+  {
+   "id": "F201",
+   "milestone": "M2",
+   "name": "拍照/选图识谱管线",
+   "description": "CameraX 拍照或相册选图 → FrameCodec 压缩 → LlmTabExtractor（视觉链）→ 合法性过滤 → TabDocument",
+   "priority": 20,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "对书页/屏幕截图/打印谱三类来源识谱可用率达到开发方案 §9 M2 验收标准；可重拍重试"
+  },
+  {
+   "id": "F202",
+   "milestone": "M2",
+   "name": "alphaTab 谱面渲染与点按试听",
+   "description": "AndroidView 包装 alphaTab 1.8.4 渲染 TabDocument，点按音符试听（内置 SoundFont 合成）",
+   "priority": 21,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "TabDocument 渲染与源谱一致；点按某音发声且音高与 midi() 换算一致",
+   "notes": "2026-09-19 重构 A2/A3 落地：AlphaTabPanel(AndroidView)+AlphaSynth 播放+点按试听+光标；自绘视图保留双渲染切换（TabStudioScreen 三态）；A0 spike classes.jar 级核实"
+  },
+  {
+   "id": "F203",
+   "milestone": "M2",
+   "name": "识别结果编辑修正",
+   "description": "识谱结果可手动改弦/品/小节后保存回 TabDocument（识别与讲解分离的兜底）",
+   "priority": 22,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "改一个错的品位后保存，重新渲染与讲解都基于修正后的数据"
+  },
+  {
+   "id": "F204",
+   "milestone": "M2",
+   "name": "拍谱讲解（基于结构化数据）",
+   "description": "讲解基于 TabDocument 结构化数据 + 谱图，输出按弦/拨弦/技巧说明与练习建议",
+   "priority": 23,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "同一段谱两次讲解结论一致（不重新看图重讲）；说明能指导实际按弦"
+  },
+  {
+   "id": "F205",
+   "milestone": "M2",
+   "name": "Guitar Pro 导入",
+   "description": "alphaTab 导入 .gp3~.gp8 → TabDocument（唯一谱面数据模型）",
+   "priority": 24,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "导入 3 个不同版本 GP 文件，弦/品/拍与源文件抽查一致"
+  },
+  {
+   "id": "F206",
+   "milestone": "M2",
+   "name": "移调/变调夹计算器",
+   "description": "原调→新调换算、变调夹夹几品换指法（乐理计算移植 tonal.js/teoria.js 思路到 Kotlin）",
+   "priority": 25,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "已知输入算已知输出：C→G 上移 5 品等 ≥10 组用例全对（单元测试）"
+  },
+  {
+   "id": "F207",
+   "milestone": "M2",
+   "name": "逐句大白话讲解管线（图片谱，调研定稿 2026-09-15）",
+   "description": "路线 B：识谱→TabDocument→先规划全曲乐句分段→逐句生成讲解（总述/左手/右手/术语大白话/难点/自查）；CoVe 覆盖审计防漏音：讲解后剥离文本仅凭 TabDocument 重列音符清单做集合比对，不一致重试",
+   "priority": 26,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "对含 ≥20 音的样例谱：覆盖审计 0 漏音 0 重复；每句含 finger 字段；术语首现带一句解释（抽样人工核对）"
+  },
+  {
+   "id": "F208",
+   "milestone": "M2",
+   "name": "乐句卡片式点读 UI",
+   "description": "讲解以乐句卡片流展示（2-4 小节/句），卡片配小节序号与原图对照；点单个音符只讲该音（音符级点读兜底）；整段系统 TTS 朗读",
+   "priority": 27,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "逐句卡片可点开/朗读；点任意音符能获得该音的弦/品/手指讲解；讲解结果本地缓存可离线回看"
+  },
+  {
+   "id": "F209",
+   "milestone": "M2",
+   "name": "自动指法分配（DP）",
+   "description": "自研动态规划：弦/品序列→左手手指编号(0-4)与把位建议；代价=换弦/跨把位/手指伸展/同把位优先；LLM 生成的指法必须过规则校验（同品异弦不得同指等）",
+   "priority": 28,
+   "status": "done",
+   "passes": true,
+   "test_criteria": "爬格子/C-Am-G-F 和弦进行等 ≥10 组用例指法符合常识（单元测试）；非法指法被规则校验拦截"
+  },
+  {
+   "id": "F301",
+   "milestone": "M3",
+   "name": "相机实时手部跟踪叠加",
+   "description": "CameraX ImageAnalysis + MediaPipe HandLandmarker（LIVE_STREAM、GPU delegate）→ Canvas 骨架叠加",
+   "priority": 30,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "近五年机型上 ≥30fps 实时叠加；手出画面时叠加消失且给出引导"
+  },
+  {
+   "id": "F302",
+   "milestone": "M3",
+   "name": "姿势规则警报（0ms 层）",
+   "description": "角度阈值判定：折腕（肘-腕-食指 MCP < 165°）、指尖-关节塌陷、拇指位置分区、双手在框检测",
+   "priority": 31,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "刻意折腕/塌指在 1 秒内出警报；正常手型不误报（误报率开发方案 §9 M3 可接受）"
+  },
+  {
+   "id": "F303",
+   "milestone": "M3",
+   "name": "关键帧 AI 点评 + TTS 播报",
+   "description": "手在框内 + 每 90~120s（或姿势突变）采 1~3 帧 → reviewHandFrames（JSON）→ 卡片 + 系统 TTS 播报",
+   "priority": 32,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "练习中获得可执行的点评（单次 ≤2 条）；手不在画面时不产生幻觉点评"
+  },
+  {
+   "id": "F401",
+   "milestone": "M4",
+   "name": "riff 跟练对错判定",
+   "description": "目标音序列 vs 实测音序列（MPM）时序对齐判定，标出错音/节奏偏差",
+   "priority": 40,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "弹对简单 riff 判对；故意错一个音能指出第几拍错、高了还是低了"
+  },
+  {
+   "id": "F402",
+   "milestone": "M4",
+   "name": "推弦/揉弦音高曲线",
+   "description": "MPM 连续音高追踪 → 曲线可视化；闷音/杂音频谱特征提示",
+   "priority": 41,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "全音推弦曲线显示 ≈2 半音爬升；静音拨弦识别为闷音"
+  },
+  {
+   "id": "F403",
+   "milestone": "M4",
+   "name": "视听互验",
+   "description": "视觉参考品位与音频实测不一致时以音频为准并提示检查（本项目差异化点）",
+   "priority": 42,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "构造按着 C 弹出 E 的场景，App 报音频结论并提示核对"
+  },
+  {
+   "id": "F404",
+   "milestone": "M4",
+   "name": "手位标定（支架 + 低把位约束）",
+   "description": "琴颈斜前 45° 引导页 + 低把位（前 5 品）约束下的参考品位显示（高置信度才显示并标注「参考」）",
+   "priority": 43,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "固定机位下低把位参考品位与实际 ±1 品内；超约束场景明确不显示"
+  },
+  {
+   "id": "F501",
+   "milestone": "M5",
+   "name": "AI 周复盘",
+   "description": "DeepSeek 读一周 Room 记录 → 本周练了什么/哪里进步/下周建议（晚间跑，省高峰差价）",
+   "priority": 50,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "有 7 天记录时生成的复盘含可执行建议且引用真实练习数据，无编造"
+  },
+  {
+   "id": "F502",
+   "milestone": "M5",
+   "name": "曲库管理",
+   "description": "TabDocument 持久化曲目库 + 进度标记（在学/已会/搁置）",
+   "priority": 51,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "保存/搜索/标记进度可用，重启后数据完整"
+  },
+  {
+   "id": "F503",
+   "milestone": "M5",
+   "name": "音色向导",
+   "description": "说「想要 Metallica 那种音」→ 深思链推荐效果器参数并逐条解释",
+   "priority": 52,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "至少 3 种目标音色给出 Gain/Delay/Reverb 等参数且每条带人话解释"
+  },
+  {
+   "id": "F504",
+   "milestone": "M5",
+   "name": "Realtime 接口实验（观察项）",
+   "description": "评估 GLM-Realtime 类接口可用性/价格/质量，决定是否试验全双工语音（技术方案 §5.1 观望项）",
+   "priority": 53,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "产出一份评估记录（延迟/成本/质量三指标实测），再决定做或不做——不做也算完成"
+  },
+  {
+   "id": "F601",
+   "milestone": "M6",
+   "name": "扒谱：音视频输入与抽音频",
+   "description": "用户选音频/视频文件 → Media3/MediaExtractor 抽取 PCM（不引入已退役的 FFmpeg-kit）→ 重采样到转写模型所需格式；UI 引导录制/选择干净吉他素材",
+   "priority": 60,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "mp3/m4a/mp4 三种输入均能抽出正确时长的 16k/22k 单声道 PCM"
+  },
+  {
+   "id": "F602",
+   "milestone": "M6",
+   "name": "扒谱：端侧音频转写（basic-pitch ONNX）",
+   "description": "basic-pitch 转子 onnxruntime-android：音频→MIDI 音符事件（含时间戳）；模型随包或首启下载；主打干净单音/分解和弦场景（调研结论：失真与混音是天花板，不承诺）",
+   "priority": 61,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "10 秒干净单音 riff 在中端机型（小米 14 基线）转写 < 60s；音高正确率抽检 ≥80%"
+  },
+  {
+   "id": "F603",
+   "milestone": "M6",
+   "name": "扒谱：弦品分配 DP + TabDocument 生成",
+   "description": "MIDI 音符→弦/品分配（代价=换弦/跨把位/伸展，与 F209 共用 DP 内核）→节拍量化（端侧 onset+测速起步）→TabDocument 入曲库；保留原始时间戳回退视图",
+   "priority": 62,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "合成的已知 MIDI 序列转 tab 正确率抽检；结果可在识谱工作台展示与讲解"
+  },
+  {
+   "id": "F604",
+   "milestone": "M6",
+   "name": "扒谱：云端增强（可选付费）",
+   "description": "Demucs 音源分离 + madmom 节拍量化的云端管线（GPU 按量，预估单次 0.1-0.5 元）；失真/混音素材的『高清模式』；上线前先做成本与法务（版权免责声明）评估",
+   "priority": 63,
+   "status": "pending",
+   "passes": false,
+   "test_criteria": "同一素材端侧 vs 云端对比报告（正确率/成本/耗时），并给出上线/不上线决策记录"
+  },
+  {
+   "id": "F701",
+   "milestone": "M7",
+   "title": "和弦库：28 个常用和弦指板图 + 琶音试听 + 指法信息（乐理页入口）",
+   "status": "done",
+   "passes": true,
+   "test_criteria": "数据测试：开放和弦标准把位/横按平移/强力和弦/全部形状合法（ChordLibraryTest 4 用例）"
+  },
+  {
+   "id": "F702",
+   "milestone": "M7",
+   "title": "跟练游戏化：星级（3/2/1 按命中率）+ 最长连击显示",
+   "status": "done",
+   "passes": true,
+   "test_criteria": "RiffMatcher 判定数据驱动，UI 层展示；逻辑随 F401 单测覆盖"
+  },
+  {
+   "id": "F703",
+   "milestone": "M7",
+   "title": "速度训练提示：命中率 ≥90% 时提示渐进提速（×1.1 BPM）",
+   "status": "done",
+   "passes": true,
+   "test_criteria": "纯展示提示，BPM 计算 clamp 240；逻辑随 F401 覆盖"
+  },
+  {
+   "id": "F704",
+   "milestone": "M7",
+   "title": "调音器调弦预设（7 种）+ 音分表盘（±50 指针/±5 绿区）+ 动态认弦",
+   "status": "done",
+   "passes": true,
+   "test_criteria": "Tunings 数据 7 项各 6 值；nearestString 换 tuning 即刻生效（引擎逻辑，真机验证认弦体验）"
+  },
+  {
+   "id": "F705",
+   "milestone": "M7",
+   "title": "节拍器高级化：每拍细分 ×1-4 + 预备拍 count-in + 重音 pattern（引擎层）",
+   "status": "done",
+   "passes": true,
+   "test_criteria": "引擎生成逻辑（子拍弱音/count-in 高音/pattern 循环）随 UI 实测；AudioTrack 时基不变"
+  },
+  {
+   "id": "F706",
+   "milestone": "M7",
+   "title": "BPM 自动检测：onset 自相关 + 八度折叠（70-180），扒谱留空即自动检测",
+   "status": "done",
+   "passes": true,
+   "test_criteria": "合成节拍 120/90/160BPM 检出 ±2；44100 重采样口径；过短/静音返回 null（TempoDetectorTest 5 用例）"
+  },
+  {
+   "id": "F708",
+   "milestone": "M7",
+   "title": "播放光标跟随 + 自动滚动（Songsterr 式）：TonePlayer 进度流 → 当前小节高亮 + 跟拍滚动；单音试听不触发",
+   "status": "done",
+   "passes": true,
+   "test_criteria": "进度流随写推进（阻塞写准同步）；同小节滚动节流；UI 层验证"
+  },
+  {
+   "id": "F709",
+   "milestone": "M7",
+   "title": "首页快捷导航：识谱/练习室/乐理直达按钮",
+   "status": "done",
+   "passes": true,
+   "test_criteria": "导航路由正确（launchSingleTop）；UI 验证"
+  }
+ ]
 }

@@ -136,7 +136,10 @@ object MidiTabConverter {
             .toSortedMap()
             .map { (_, notesInBar) ->
                 TabBar(notesInBar.sortedBy { it.beat }.map {
-                    NoteEvent(string = it.string, fret = it.fret, beat = it.beat % 4, duration = it.durationBeats)
+                    NoteEvent(
+                        string = it.string, fret = it.fret, beat = it.beat % 4, duration = it.durationBeats,
+                        lowConfidence = !it.snapped, // P0-8：量化超差音进热图
+                    )
                 })
             }
         return TabDocument(title = title, tempo = bpm, sections = listOf(TabSection("Main", bars)))

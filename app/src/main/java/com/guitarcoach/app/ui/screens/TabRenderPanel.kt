@@ -257,7 +257,11 @@ fun TabRenderPanel(doc: TabDocument, modifier: Modifier = Modifier) {
                     val padH = 4.dp.toPx()
                     val w = label.size.width + padH * 2
                     val h = label.size.height + 2.dp.toPx()
-                    val bg = if (isSel) selColor else noteBg
+                    val bg = when {
+                        isSel -> selColor
+                        p.note.lowConfidence -> Color(0x55E53935) // P0-8 置信度热图：低置信音红色警示
+                        else -> noteBg
+                    }
                     drawRoundRect(
                         bg,
                         topLeft = Offset(p.x - w / 2, p.y - h / 2),

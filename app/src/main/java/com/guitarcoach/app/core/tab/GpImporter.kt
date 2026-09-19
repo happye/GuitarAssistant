@@ -54,6 +54,12 @@ object GpImporter {
 
         val masterBars = score.masterBars.toKotlinList()
         val barsByIndex = staff.bars.toKotlinList()
+        // V7 修复：拍号取首个小节的分子/分母（此前 3/4、6/8 的 GP 文件被按 4/4 口径切拍位）
+        val firstBar = masterBars.firstOrNull()
+        val timeSignature = if (firstBar != null && firstBar.timeSignatureDenominator > 0) {
+            "${firstBar.timeSignatureNumerator.toInt()}/${firstBar.timeSignatureDenominator.toInt()}"
+        } else "4/4"
+
         for (masterBar in masterBars) {
             val marker = masterBar.section?.marker?.takeIf { it.isNotBlank() }
                 ?: masterBar.section?.text?.takeIf { it.isNotBlank() }
@@ -78,6 +84,7 @@ object GpImporter {
             title = score.title ?: track.name,
             tempo = score.tempo.toInt().coerceIn(1, 300),
             tuning = staff.tuningName ?: "E标准调弦",
+            timeSignature = timeSignature,
             sections = sections,
         )
     }

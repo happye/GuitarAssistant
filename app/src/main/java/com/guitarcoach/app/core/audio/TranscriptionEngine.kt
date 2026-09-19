@@ -60,7 +60,7 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
         val events = mutableListOf<NoteDecoder.NoteEventMidi>()
         val inputBuffer = ByteBuffer.allocateDirect(4 * WINDOW_SAMPLES).order(ByteOrder.nativeOrder())
 
-        val totalWindows = ((wave.size + WINDOW_SAMPLES - 1) / WINDOW_SAMPLES).coerceAtLeast(1)
+        val totalWindows = ((wave.size + WINDOW_SAMPLES / 2 - 1) / (WINDOW_SAMPLES / 2)).coerceAtLeast(1) // 50% 重叠
         var winStart = 0
         var winIndex = 0
         while (winStart < wave.size) {
@@ -101,17 +101,24 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
             val (headFrames, headOnsets) = if (total(headA[0]) >= total(headB[0])) headA[0] to headB[0] else headB[0] to headA[0]
             events += NoteDecoder.decode(headFrames, headOnsets, winStart / TARGET_RATE.toDouble())
 
-            winStart += WINDOW_SAMPLES
+            winStart += WINDOW_SAMPLES / 2 // 50% 重叠：边界音不再因贴窗而丢（P0-9①），跨窗重复由下方合并
             winIndex++
             onProgress((winIndex.toFloat() / totalWindows).coerceIn(0f, 1f))
         }
 
+        // 跨窗合并（50% 重叠后同一 onset 会在相邻两窗各检出一次，绝对时刻几乎相同）：
+        // 排序后同 midi 间隔 <20ms 视为重复，保留早者。旧 distinctBy 按百分位桶分桶，桶边界会劈开同一时刻。
+        val sorted = events.sortedBy { it.timeSec }
+        val deduped = mutableListOf<NoteDecoder.NoteEventMidi>()
+        for (e in sorted) {
+            val last = deduped.lastOrNull()
+            if (last != null && last.midi == e.midi && e.timeSec - last.timeSec < 0.02) continue
+            deduped += e
+        }
         // 音域过滤（用户实测 Song 2 崩溃根修）：混音素材的贝斯/鼓检出低于低 E 的音（如 midi 37），
         // 旧逻辑在弦品分配层直接抛异常毁掉整个转写——改为跳过并计数上报
-        val inRange = events
-            .distinctBy { (it.timeSec * 100).toInt() to it.midi }
-            .filter { it.midi in MIDI_RANGE }
-        val skipped = events.size - inRange.size
+        val inRange = deduped.filter { it.midi in MIDI_RANGE }
+        val skipped = deduped.size - inRange.size
         val notes = inRange
             .map { TimedNote(it.midi, it.timeSec, it.durationSec, amplitude = it.amplitude.toDouble()) }
             .sortedBy { it.timeSec }
