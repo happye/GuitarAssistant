@@ -10,7 +10,8 @@
 - **P0-9**：①窗 50% 重叠+跨窗同音合并 done；②melodia_trick、③抗混叠重采样——实现一版后主动回滚（流式 sinc 跨块窗口三处联动复杂度失控，无审查代理兜底），维持 DEBT-009 待办并附风险分析（第三轮失败原则前置止损）
 - **纪律调整（用户指示）**：监督员与对抗审查门禁停用（HANDOFF/记忆已同步，新会话勿重建）
 - 验证: 本地 166/166 单测全绿；assembleDebug 通过（120.5MB）；**真机验证待用户重新接线**（设备中途离线，专业谱面/播放/和弦行未上机走查——恢复后第一件事）
-- Next: 真机验证 → Phase 1 htdemucs_6s PoC（模型转换需 PC 环境）→ D1 云端拍板
+- **真机走查通过（Session 4 续）**：专业谱面 alphaTab 渲染（五线谱+TAB 双谱/谱号拍号速度段落/符干连杠/白底纸面）+ AlphaSynth 播放（蓝光标推进）+ 点按试听全通；抓出并修复两真机 bug：AT202 崩溃（alphaTex 1.8.4 无点分 token，:8. 直接解析炸——round-trip 补覆盖）+ catch Exception 接不住 AlphaTabError（其继承 Throwable）
+- Next: Phase 1 htdemucs_6s PoC（模型转换需 PC 环境）→ D1 云端拍板
 
 ## 2026-09-19 - Session 3: 用户暴怒反馈轮（版本号/预期管理）+ 洁癖清理 + Phase A 提前
 
