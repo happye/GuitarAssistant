@@ -18,3 +18,4 @@ replay_pid*.log
 # 用户测试素材（版权音频/谱图，不入库）
 testdata/
 GuitarCoach-*.apk
+.tmp_*

@@ -15,12 +15,17 @@ android {
         minSdk = 26
         targetSdk = 36
         // 版本注入：versionCode=git 提交数（本地与 CI 同源，单调递增——固定缺省值会被 CI 包降级拒装）；
-        // versionName：tag 构建传 -PpkgVersionName，本地缺省随当前开发版本。
+        // versionName：tag 构建传 -PpkgVersionName 覆盖；本地缺省 = 最后一个 tag + dev.提交数
+        // （如 0.2.31-dev.92）——用户必须能一眼分辨装的是哪个包（2026-09-19 用户实测教训：本地包
+        // 写死 0.2.10 导致新旧无法区分，被误判为"没更新"）
         val gitCommitCount = runCatching {
             providers.exec { commandLine("git", "rev-list", "--count", "HEAD") }.standardOutput.asText.get().trim().toInt()
         }.getOrElse { 1 }
+        val gitLastTag = runCatching {
+            providers.exec { commandLine("git", "describe", "--tags", "--abbrev=0") }.standardOutput.asText.get().trim().removePrefix("v")
+        }.getOrElse { "0.2.0" }
         versionCode = (project.findProperty("pkgVersionCode")?.toString()?.toInt()) ?: gitCommitCount
-        versionName = (project.findProperty("pkgVersionName") as String?) ?: "0.2.10"
+        versionName = (project.findProperty("pkgVersionName") as String?) ?: "$gitLastTag-dev.$gitCommitCount"
 
         ndk {
             // 适配基线：小米 14（骁龙 8 Gen 3 为 64 位专用 SoC），只出 arm64-v8a；

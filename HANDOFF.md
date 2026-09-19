@@ -31,18 +31,18 @@ bash scripts/build.sh compileDebugKotlin   # 本地快速验证
 
 - **里程碑**：M0 ✅（v0.1.0）｜M1-M6 代码面全部落地（**F602 端侧转写引擎已落地**，basic-pitch TFLite 0.2MB 随 APK）｜M7 集百家之长扩展进行中（F701-F709 done：和弦库/游戏化/提速/调弦预设/音分表盘/节拍器高级化/BPM 自动检测/今日练习单/光标跟随/快捷导航/曲库直通跟练）——**关闭条件=真机验收**
 - **特性计数**：38 项 —— done 10（F001-F005、F104、F107、F205、F206、F209，CI 绿）；2026-09-17 用户反馈五连修已落（签名/持久化/长音频/识谱准确性与观感，见 CHANGELOG v0.2.8/v0.2.9）；代码完成待真机验收 ~19；F602 阻塞（basic-pitch 无官方 ONNX）；F504/F604 评估决策记录已落档（暂不做/不上线）
-- **Release**：tag v* → release.yml 自动测试+出 APK+挂 GitHub Releases；**v0.2.31 在线**（签名统一版：仓库内 keystore/debug.keystore，任意来源 APK 可覆盖安装；versionCode=提交数/versionName=tag 号）。用户网络：代理 127.0.0.1:7890 间歇关闭，push 失败先试直连 `git -c "http.https://github.com.proxy=" push`，都挂就定时重试
-- **CI**：全绿；**本地单测** `bash scripts/run-tests-local.sh` 136 用例全绿；每特性收尾本地 assembleDebug 出 APK + docs/App 内文案双同步（AGENTS.md 交付纪律 + L014）
-- 进行中无未提交代码，工作区干净
+- **Release**：tag v* → release.yml 自动测试+出 APK+挂 GitHub Releases；**v0.2.32 在线**（签名统一版：仓库内 keystore/debug.keystore，任意来源 APK 可覆盖安装；versionCode=提交数/versionName：CI=tag 号、本地=最后tag+dev.N 可区分，L026）。用户网络：代理 127.0.0.1:7890 间歇关闭，push 失败先试直连 `git -c "http.https://github.com.proxy=" push`，都挂就定时重试
+- **CI**：全绿；**本地单测** `bash scripts/run-tests-local.sh` 154 用例全绿；每特性收尾本地 assembleDebug 出 APK + docs/App 内文案双同步（AGENTS.md 交付纪律 + L014）
+- **扒谱+渲染重构进行中（2026-09-19 立项，用户已拍板）**：方案 docs/exec-plans/rework-plan-2026-09-19.md；三拍板=混音默认和弦级（D3）/模型按需下载（D2）/Phase 0+Phase A 并行先行；Phase 0 第一批 done（v0.2.32 时序层）；**当前主攻 Phase A（alphaTab 渲染播放，用户最痛"不像吉他谱"）**；v0.2.32 用户可见变化有限已在 CHANGELOG 声明（L027）
 - 本段特性明细：M3 视觉教练（跟踪/警报/点评+TTS）、M4 跟练判定+曲线+互验、M5 曲库 Room v3+周复盘+音色向导、M6 扒谱基建（抽 PCM+弦品 DP）
 - **真机走查轮（2026-09-19）**：5 Tab 全过 + 扒谱全链路实测（Song 2：分离 23s/RMS 诊断、BPM 自动检出 129、198 音符进谱）+ 两 bug 修复（BACK 丢状态 E011、BPM 默认值架空自动检测 L025）；小米 14 无 TTS 引擎（语音点评静音，待装 TTS）；F205 GP 导入（alphaTab 1.8.4 引入经目标确认）
 
 ## 五、下一步（按优先级）
 
-1. **出谱质量调参**：真机走查已过，剩余质量评估需用户真机听感/看谱数据（分离诊断日志已埋，读法：`adb logcat -s GuitarCoach` grep 分离诊断）
-2. **里程碑收口**：验收过 → M1 v0.2.0 收口（CHANGELOG 大版本 + versionName + ROADMAP）
-3. **Spleeter 深化**：分离质量调参（int8 模型精度边界内）；或按 DEBT-010 v3 路线自训 guitar-stem 模型（数周研究项目）
-4. F202 alphaTab 精渲染（DEBT-007）；melodia_trick 移植（DEBT-009）
+1. **Phase A：alphaTab 渲染播放重构（当前主攻，用户最痛点）**：A0 API spike→TabDocumentScoreAdapter→AlphaTabPanel（AndroidView）→AlphaSynth 播放+光标+点听；方案 docs/exec-plans/rework-plan-2026-09-19.md §1.2/§3-A
+2. **Phase 0 剩余**：P0-1 TranscriptionController（修 V4）/ P0-7 InputClassifier+ChordTracker 和弦级输出 / P0-8 置信度热图 / P0-9 三小修
+3. **Phase 1 分离换血**：htdemucs_6s PoC（门禁 RTF≤1.5/内存≤1.5GB）→ guitar stem 进转写；失败降级 UVR-MDX-Inst
+4. 出谱质量数据继续收（分离诊断+时序诊断日志已埋：`adb logcat -s GuitarCoach`）
 
 ## 六、待用户操作（阻塞项，别干等）
 
@@ -52,8 +52,8 @@ bash scripts/build.sh compileDebugKotlin   # 本地快速验证
 
 ## 七、多 Agent 运行机制（本项目的增效约定）
 
-- **常驻代码监督员**（用户要求，随开发停止而停止）：只读、300s 巡检 git 变更集 + 按审查清单报告（P0 密钥/P1 编译崩溃/P2 建议），SendMessage 给 main。**新会话重建方式**：spawn 一个 general-purpose 后台 agent，职责 = ①开工先读 AGENTS.md + .learnings/LEARNINGS.md + docs/模型API接入手册.md ②每轮只审 git 变更集 ③findings 按协议汇报 ④收到「停止监督」即退场。开发间歇期可 TaskStop 停掉，SendMessage 同一 agent 可恢复上下文
-- **调研/扫描类子任务**随时并行派发（用户明确要求善用 subagent）；WebSearch 工具可能 403 → 用 mcp__bocha__bocha_web_search，WebFetch 部分域名被拦
+- **常驻代码监督员：用户已于 2026-09-19 叫停，不要重建**（新会话注意）。AGENTS.md 纪律 7 的发版前对抗审查门禁在叫停期间同样不执行，除非用户重新要求
+- **调研/扫描类子任务**随时并行派发（用户明确要求善用 subagent）；WebSearch 工具可能 403 → 用 mcp__bocha__bocha_web_search，WebFetch 部分域名被拦（调研类 agent 实测：Bocha 也可能 403，兜底 curl 直抓 + GitHub API + Maven 直查）
 - **/loop 重试观察员**（用户要求）：LLM 发送失败（429/额度类）每小时重试，额度 4h 刷新；非额度错误不重试。新会话若还需此机制则重建
 
 ## 八、信息地图（谁管什么，防臃肿）

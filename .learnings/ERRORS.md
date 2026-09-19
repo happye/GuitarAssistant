@@ -90,3 +90,19 @@
 - 根因: Navigation Compose 弹栈直接销毁 back stack entry，无 save-on-pop；TabStudioScreen 的 rememberSaveable 状态只在底部导航 popUpTo{saveState=true} 路径存活
 - 修复: CoachApp 加 BackHandler——非 home 路由返回时 navigate 到 home 并 saveState（与 Tab 切换同语义）；home 返回仍正常退出（dumpsys 焦点验证）
 - 验证命令: 识谱→填示例→解析→keyevent 4→底部点识谱→粘贴内容+解析结果应在（v0.2.31 真机验证通过）
+
+## E012 本地包版本号不可区分（用户实测暴怒）
+
+- 现象: 用户手机上 App 永远显示 v0.2.10，而交付报告声称装了新代码——用户无法验证，判定"没更新/说了谎"
+- 复现条件: 本地 assembleDebug 构建（不传 -PpkgVersionName）→ versionName 走 build.gradle.kts 写死的缺省值
+- 根因: 版本注入只在 CI tag 构建路径生效；本地缺省值写死后从未随开发推进，且我早看到显示却未告知用户
+- 修复: 本地缺省 versionName = git 最后 tag + dev.提交数（git describe --tags --abbrev=0 + rev-list --count），如 0.2.32-dev.92；tag 构建仍由 -PpkgVersionName 覆盖
+- 验证命令: bash scripts/build.sh assembleDebug && adb install -r ... && adb shell dumpsys package com.guitarcoach.app | grep versionName → 应显示 x.y.z-dev.N（2026-09-19 15:39 真机验证 0.2.32-dev.92）
+
+## E013 选择器内连续盲试违反协作约定（L029 复发）
+
+- 现象: MIUI 文件选择器里为找 mp3 连续 5+ 次滑动试错，用户被迫看反复无效的屏幕滚动
+- 复现条件: 系统选择器列表顺序动态变化，按记忆坐标盲滑
+- 根因: 把"再滑一次"当便宜动作，未执行"卡住直接开口要人帮忙"的记忆规则
+- 修复: 行为规则升级为"同一目标连续 2 次未果即停手求援"（L029）；本例最终靠截屏逐次定位解决
+- 验证命令: 无自动化——协作类，靠 L029 阈值执行
