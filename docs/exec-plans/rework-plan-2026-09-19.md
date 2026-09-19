@@ -76,3 +76,16 @@ R1 htdemucs 不过门禁（中）→ 三级降级已定义；R2 alphaTab API 与
 
 ## 5. 需用户拍板剩余项
 D1 云端按次付费（Phase 2 前置，建议先吃 Klangio 免费额度）｜D5 双渲染观察期时长｜D6 音色档位｜D7 弦品模型特化（Phase 1 后评估）——均低不可逆。
+
+## 附录 B：A0 spike 结果（2026-09-19，classes.jar 级核实）
+
+| 调研 B 主张 | 核实结果 |
+|---|---|
+| alphaTab.AlphaTabView（Android View） | ✅ 存在（alphaTab/AlphaTabView.class + res/layout/alphatab_view.xml + SuspendableScrollView/RenderSurface 支撑类）——Compose 集成 = AndroidView { AlphaTabView(it) } |
+| AlphaSynth 播放 | ✅ alphaTab/synth/AlphaSynth(+Base/Wrapper)、PlayerState、PlaybackRange(+ChangedEventArgs)、AndroidSynthOutput/AudioWorker |
+| 光标/命中/交互 | ✅ rendering/utils/BoundsLookup、ICursorHandler、MidiTickLookup* 系 |
+| 装载 | ✅ importer/ScoreLoader.loadScoreFromBytes |
+| 随包资产 | ✅ assets/Bravura.otf + sonivox.sf2/sf3 + R.txt——AAR 自带，零额外配置出渲染与声音 |
+| 官方示例 | ✅ alphaTabSamplesAndroid（MIT）：import alphaTab.AlphaTabView；settings.display.scale/layoutMode、ScoreLoader.loadScoreFromBytes 全部实际用法确认 |
+
+**A1 实现路线定案**：TabDocument → alphaTex 文本（复用 F205 已验证的 alphaTex 路径，GpImporter 有同路径先例与单测）→ ScoreLoader 载入 Score。比手搓 model 对象树稳、可单测（字符串断言）。V8 风险解除。
