@@ -66,3 +66,19 @@
 - 根因: SSE 解析 `as? JsonPrimitive` 放行了 JsonNull（子类），其 content 属性即字面 "null"；修复补丁的字符串过滤又误杀 jsonMode 合法 null token（E 系与 L019 同源，见 L019 双向错误记录）
 - 修复: `is JsonNull` 类型过滤（唯一精确解）+ streamWithFallback 空流视为失败换链（LlmFallback P1）
 - 验证命令: 空记录场景点「生成今日练习单」应输出可读练习建议而非 null
+
+## E009 扒谱分离闪退（用户真机，Song 2 + Spleeter 分离开）
+
+- 现象: 开「分离人声/鼓」开关选音频直接闪退，无任何 UI 错误提示
+- 复现条件: 5 分半歌曲 + Spleeter 分离开 → 整曲一次性 STFT+分离，内存分配累计 700MB+（x 张量 120MB×2 + spec×2 + mask×2 + STFT 结果 116MB）远超 App Java 堆
+- 根因: OOM 是 Error 不是 Exception，UI 的 catch(Exception) 接不住；整曲一次性处理架构性缺陷
+- 修复: separate() 分块流式重构——每 23.2s（512 帧）独立 STFT→双模型→mask→iSTFT，峰值内存 ~50MB；分离进度回调接 UI
+- 验证命令: 真机 Song 2 开分离开关全链路（v0.2.29+ 用户实测分离走通）
+
+## E010 CI Release 大文件上传超时（v0.2.29）
+
+- 现象: gh release create 附 120MB APK 上传失败，Release 无包（构建本身成功）
+- 复现条件: release.yml 单步直传大文件，runner 网络抖动
+- 根因: gh 一次直传大文件无重试
+- 修复: 分步——先 gh release create（不带资产）→ gh release upload 循环重试 5 次（--clobber）
+- 验证命令: 重打 tag 后 Releases 页资产出现（v0.2.29 重跑后验证）

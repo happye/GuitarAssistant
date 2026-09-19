@@ -47,6 +47,15 @@
 - 监督员全程抓实错：TunerMeter 角度错位 90°（调音功能性错误）、TonePlayer stop 泄漏、gitignore music/ 无锚定吞 core/music 三源文件（P0，CI 必炸）等全部修复
 - **流程教训（L019/L020）**：gitignore 锚定语义、`&&` 硬链（连续两次编译错误误推后立规矩）
 - 验证: 124/124 单测全绿；每批 APK；发版 v0.2.12-v0.2.19（GitHub Releases 全部挂包）
+## 2026-09-18 - Session: 真机调试闭环建立 + Spleeter 分离落地 + 对抗审查轮（v0.2.21-v0.2.30）
+
+- **adb 真机调试闭环建立（L022）**：用户 USB 连接小米 14 + 开 USB 调试/USB 安装——screencap 截图多模态亲看 UI、input tap 操作、logcat 抓堆栈、push 推素材。协作模式（L023）：用户操作 App，agent 监控 logcat+读截图
+- Completed 本轮：三 bug 修复（满屏 null JsonNull 根修/首页跳转删除/转写张量 shape 动态分配）→ 对抗审查轮（P1×5 全修+高优 P2×4）→ 扒谱超域崩溃根修（Song 2 贝斯检出 midi37）→ KS 双发失谐音色 → **Spleeter 音轨分离初版落地**（2stems int8 ONNX 26MB×2 随包 + 纯 Kotlin STFT/iSTFT）→ 分离闪退根修（分块流式 50MB 峰值）→ 真机实测分离走通
+- 用户实测确认: 分离不再闪退（分块修复生效）；出谱质量与音色仍待迭代（0.2MB 转写模型天花板 + Spleeter 2stems 无吉他 stem 的诚实边界）
+- 版本: v0.2.21→v0.2.30 连发（Releases 挂包；v0.2.29 上传超时→release.yml 分步+重试修复）
+- 教训: L022（adb 闭环）/L023（控制权协作）/E009（分离 OOM）/E010（大文件上传）；AGENTS.md 纪律 7 对抗审查门禁落地并两轮验证有效
+- Next: 用户实测分离效果（分离诊断日志读数）→ 出谱质量调参 → Spleeter v1 深化（v2 demucs.cpp JNI 离线模式已评估不立项，见 DEBT-010）→ M1-M6 真机验收收口
+
 ## 2026-09-17 - Session: 用户实测反馈轮（三 bug）+ 对抗性审查门禁确立
 
 - 用户实测 v0.2.20 反馈: 首页顶部跳转冗余+无法返回 / 转写推理 TFLite 张量形状崩溃 / 空记录练习单满屏 null / "每个 UI 界面应多模态预览测试"

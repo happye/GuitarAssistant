@@ -38,10 +38,10 @@ bash scripts/build.sh compileDebugKotlin   # 本地快速验证
 
 ## 五、下一步（按优先级）
 
-1. **真机验收 M1-M6**（等用户连小米 14）：连上后按 docs/roadmap/M1-M6 各文档逐特性验收；APK 可从 GitHub Releases 直接下载安装
-2. **里程碑收口**：M1+M2 验收过 → v0.2.0/v0.3.0 大版本（CHANGELOG 大版本 + versionName + ROADMAP）
-3. **F602 转写引擎**：需 Python 工具链把 basic-pitch 转 ONNX 并推理验证（可选项，阻塞未排期）
-4. F202 alphaTab 精渲染升级（可选）
+1. **真机走查+验收**（adb 已通，agent 可自测大半）：逐功能实测清单在对话记录中；出谱质量调参需用户真机数据（分离诊断日志已埋）
+2. **里程碑收口**：验收过 → M1 v0.2.0 收口（CHANGELOG 大版本 + versionName + ROADMAP）
+3. **Spleeter 深化**：分离质量调参（int8 模型精度边界内）；或按 DEBT-010 v3 路线自训 guitar-stem 模型（数周研究项目）
+4. F202 alphaTab 精渲染（DEBT-007）；melodia_trick 移植（DEBT-009）
 
 ## 六、待用户操作（阻塞项，别干等）
 

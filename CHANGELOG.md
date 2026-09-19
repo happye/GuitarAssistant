@@ -6,6 +6,11 @@
 ## [未发布] v0.2.0 —— M1 乐理与识谱基础（进行中）
 
 ### 小版本
+- v0.2.30（2026-09-18）：分离诊断日志（vocals/accompaniment RMS 对比）+ 扒谱重复使用防御日志 + KS 双发失谐音色（±0.15% 两弦叠加+时长人手微变，消机械感）
+- v0.2.29（2026-09-18）：**分离闪退根修**——整曲一次性分离内存累计 700MB+ 超 Java 堆（OOM 为 Error 不可捕获）→ 分块流式重构（每 23.2s 一块，峰值 50MB）+ 分离进度回调接 UI
+- v0.2.28（2026-09-17）：**音轨分离初版（F602 v2）**——Spleeter 2stems int8 ONNX（26MB×2 随包）端侧分离人声/鼓，伴奏轨进转写；纯 Kotlin STFT/iSTFT（radix-2 FFT round-trip 测试）；算法忠实移植 sherpa-onnx spleeter impl
+- v0.2.27（2026-09-17）：Biquad 高通系数修正（此前写错成直通形状致 8 倍增益——提交时测试未绿的纪律违规，本轮修正）
+- v0.2.26（2026-09-17）：**吉他聚焦预处理**——中央消除（mid/side）+ 带通聚焦（HPF80+LPF1600）立体声域预处理，混音素材转写增强；扒谱 UI 加开关
 - v0.2.28（2026-09-17）：**音轨分离初版（F602 v2）**——Spleeter 2stems int8 ONNX（26MB×2 随包）端侧分离人声/鼓，伴奏轨进转写（basic-pitch）——混音素材专攻；纯 Kotlin STFT/iSTFT（radix-2 FFT，round-trip 2 测试）忠实移植 sherpa-onnx spleeter impl（soft mask 平方比归一）；扒谱页新增「分离人声/鼓」开关（默认开）；测试素材统一 testdata/（music+guitartablature）
 - v0.2.25（2026-09-17）：**扒谱精度与音色双升级**（全网调研落档 .learnings/research-f602-tone-2026-09-17.md，源码级核实）——①NoteDecoder v2：官方 output_to_notes_polyphonic 算法移植（差分推断 onset/局部峰值取平台左沿/能量消耗防重复/官方 min_note_len）+ 吉他调优（min_note_len 186ms、解码层音域收口 bin19~67 根治 midi37 类低音误检）+ amplitude 输出 ②试听音色 Karplus-Strong 物理拨弦合成替换正弦谐波（延迟线+反馈低通+软过载+拨片瞬态，确定性可测）③超域音三层修复（跳过+计数上报，Song 2 实测崩溃根修）④转写超域过滤/amplitude 透传链
 - v0.2.23（2026-09-17）：监督员抓崩点转移——playSequence 裸线程包 render try-catch（防爆炸 require 的 IAE 不再进程崩溃）+ 600s 上限单测；抽取错误文案引用实际 maxSeconds。深度复盘落 .learnings L019-L021/E007-E008（JsonNull 双向错误、崩点转移模式、对抗审查门禁）；对抗审查升级为发版前固定门禁（AGENTS.md 工程纪律 7）
