@@ -1,8 +1,8 @@
 package com.guitarcoach.app.core.audio
 
 import android.content.Context
-import com.guitarcoach.app.core.tab.MidiTabConverter
-import com.guitarcoach.app.core.tab.STANDARD_TUNING_MIDI
+import com.guitarcoach.app.core.music.TimedNote
+import com.guitarcoach.app.core.music.Tunings
 import org.tensorflow.lite.Interpreter
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -29,7 +29,7 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
         const val N_CONTOURS = 264
 
         /** 吉他合法音域：6 弦空弦(midi 40) ~ 1 弦 24 品(midi 88)。 */
-        val MIDI_RANGE = (STANDARD_TUNING_MIDI.last()..(STANDARD_TUNING_MIDI.first() + 24))
+        val MIDI_RANGE = (Tunings.STANDARD_TUNING_HIGH_FIRST.last()..(Tunings.STANDARD_TUNING_HIGH_FIRST.first() + 24))
     }
 
     private val interpreter: Interpreter
@@ -44,7 +44,7 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
         }
 
     data class TranscriptionResult(
-        val notes: List<MidiTabConverter.MidiNote>,
+        val notes: List<TimedNote>,
         val skippedOutOfRange: Int, // 超出吉他音域被跳过的检出数（混音素材的贝斯/鼓常驻此区）
     )
 
@@ -113,7 +113,7 @@ class TranscriptionEngine(context: Context) : AutoCloseable {
             .filter { it.midi in MIDI_RANGE }
         val skipped = events.size - inRange.size
         val notes = inRange
-            .map { MidiTabConverter.MidiNote(it.midi, it.timeSec, it.durationSec, amplitude = it.amplitude.toDouble()) }
+            .map { TimedNote(it.midi, it.timeSec, it.durationSec, amplitude = it.amplitude.toDouble()) }
             .sortedBy { it.timeSec }
         return TranscriptionResult(notes, skipped)
     }

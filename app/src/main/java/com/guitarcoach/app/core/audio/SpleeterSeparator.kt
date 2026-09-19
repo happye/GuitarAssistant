@@ -53,7 +53,7 @@ class SpleeterSeparator(context: Context) : AutoCloseable {
     val CHUNK_SAMPLES = (CHUNK_FRAMES - 1) * HOP + N_FFT
 
     /**
-     * 分离主入口（分块流式）：每 23.2s 音频独立 STFT→双模型→mask→iSTFT，
+     * 分离主入口（分块流式）：每块 = 512 帧 × hop 1024 = ~11.9s 音频独立 STFT→双模型→mask→iSTFT，
      * 峰值内存 ~50MB——整曲一次性处理的分配累计 700MB+ 必然 OOM 闪退（用户实测根修）。
      * 输入立体声交错 PCM（任意采样率，内部重采样到模型域 44100）。
      * onProgress 0..1 按块回调。

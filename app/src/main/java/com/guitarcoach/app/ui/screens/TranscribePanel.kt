@@ -23,8 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.guitarcoach.app.core.audio.AudioPcmExtractor
+import com.guitarcoach.app.core.audio.BeatTracker
+import com.guitarcoach.app.core.audio.NoteCleaner
 import com.guitarcoach.app.core.audio.SpleeterSeparator
-import com.guitarcoach.app.core.audio.TempoDetector
 import com.guitarcoach.app.core.audio.TranscriptionEngine
 import com.guitarcoach.app.core.tab.MidiTabConverter
 import com.guitarcoach.app.core.tab.TabDocument
@@ -89,12 +90,11 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                             AudioPcmExtractor().extractToMono(fd.fileDescriptor, targetRate = 22050, enhance = false)
                         }
                     } ?: throw IllegalArgumentException("文件读取失败，请重试")
-                    // F706 BPM：用户手输值优先；否则自动检测。检出失败不预填假值（检测值≠手输值，字段保持空下次仍走检测）
-                    val bpm = if (bpmManuallyEdited && bpmText.isNotBlank()) {
+                    // F706 BPM：用户手输值优先（恒速网格）；否则逐拍跟踪（曲内漂移吸收，
+                    // 检出 BPM 误差不再随曲长累积——重构方案 §2.1）。跟踪失败不预填假值。
+                    val manualBpm = if (bpmManuallyEdited && bpmText.isNotBlank()) {
                         bpmText.toIntOrNull()?.coerceIn(40, 300) ?: 120
-                    } else {
-                        TempoDetector.detect(pcm.pcm, pcm.sampleRate)?.also { bpmText = it.toString() } ?: 120
-                    }
+                    } else null
                     progressText = "转写中…"
                     val engine = TranscriptionEngine(context)
                     val result = try {
@@ -109,8 +109,21 @@ internal fun TranscribeSection(container: AppContainer, onDocument: (TabDocument
                     // 时长截断（前 2 分钟）：长曲先出主干；截断必须告知用户（局限如实标注，监督员 P2）
                     val kept = midiNotes.filter { it.timeSec < 120 }
                     truncated = midiNotes.size - kept.size
-                    val placed = MidiTabConverter.convert(kept, bpm)
-                    val doc = MidiTabConverter.toTabDocument(placed, bpm = bpm, title = "扒谱 " + uri.lastPathSegment?.substringAfterLast('/')?.take(24).orEmpty())
+                    val grid = manualBpm?.let {
+                        com.guitarcoach.app.core.music.BeatGrid.constant(it, (kept.maxOfOrNull { n -> n.timeSec + n.durationSec } ?: 0.0) + 4.0)
+                    }
+                        ?: BeatTracker.track(pcm.pcm, pcm.sampleRate)
+                        ?: com.guitarcoach.app.core.music.BeatGrid.constant(120, (kept.maxOfOrNull { n -> n.timeSec + n.durationSec } ?: 0.0) + 4.0) // 跟踪失败回退，不预填 bpmText（L025）
+                    if (manualBpm == null && grid.bpm > 0) bpmText = kotlin.math.round(grid.bpm).toInt().toString()
+                    val cleaned = NoteCleaner.clean(kept, 60.0 / grid.bpm)
+                    android.util.Log.d(
+                        "GuitarCoach",
+                        "时序诊断: bpm=%.1f beats/bar=%d 低置信删=%d 同音并=%d 鬼影删=%d 和弦组=%d".format(
+                            grid.bpm, grid.beatsPerBar, cleaned.droppedLowAmp, cleaned.mergedSamePitch, cleaned.droppedGhosts, cleaned.chordGroups
+                        ),
+                    )
+                    val placed = MidiTabConverter.convert(cleaned.notes, grid)
+                    val doc = MidiTabConverter.toTabDocument(placed, bpm = kotlin.math.round(grid.bpm).toInt(), title = "扒谱 " + uri.lastPathSegment?.substringAfterLast('/')?.take(24).orEmpty())
                     doc to result.skippedOutOfRange
                 }
                 onDocument(doc)

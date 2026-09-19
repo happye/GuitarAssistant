@@ -13,6 +13,9 @@ object Tunings {
     }
 
     val STANDARD = Tuning("E 标准", listOf(40, 45, 50, 55, 59, 64))
+
+    /** 标准调弦 midi（1 弦在最上口径，与 TabDocument 弦号一致）：E4,B3,G3,D3,A2,E2。 */
+    val STANDARD_TUNING_HIGH_FIRST: IntArray = STANDARD.midiLowFirst.reversed().toIntArray()
     val DROP_D = Tuning("Drop D", listOf(38, 45, 50, 55, 59, 64))
     val EB_STANDARD = Tuning("Eb 半步下", listOf(39, 44, 49, 54, 58, 63))
     val D_STANDARD = Tuning("D 全步下", listOf(38, 43, 48, 53, 57, 62))

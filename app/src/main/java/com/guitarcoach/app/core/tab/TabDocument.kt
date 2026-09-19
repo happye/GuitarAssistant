@@ -31,8 +31,8 @@ data class NoteEvent(
     val technique: String? = null, // palm_mute / hammer_on / pull_off / slide / bend / vibrato / mute / harmonic
 )
 
-/** 标准调弦下 1~6 弦空弦的 MIDI 音高：E4 B3 G3 D3 A2 E2。 */
-val STANDARD_TUNING_MIDI = intArrayOf(64, 59, 55, 50, 45, 40)
+/** 标准调弦下 1~6 弦空弦的 MIDI 音高：E4 B3 G3 D3 A2 E2（唯一信源在 core/music/Tunings，此处为口径别名）。 */
+val STANDARD_TUNING_MIDI = com.guitarcoach.app.core.music.Tunings.STANDARD_TUNING_HIGH_FIRST
 
 fun NoteEvent.midi(): Int = STANDARD_TUNING_MIDI[string - 1] + fret
 

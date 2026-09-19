@@ -3,6 +3,15 @@
 > Agent 交接 artifact。每次会话收尾必更新：做了什么 / 当前特性状态 / 下一步建议。
 > 特性状态唯一信源是 `feature_list.json`；里程碑范围与验收标准见 `docs/开发方案.md` §9。
 
+## 2026-09-19 - Session 2: 扒谱重构启动（调研→架构方案→Phase 0 第一批落地）
+
+- 用户判定扒谱质量不合格，要求启动架构师全网调研、重构不设限；另报渲染不专业（单音挤一格）+ 试听要重写
+- **双线调研完成**（两个并行 general-purpose agent，15+ 轮检索交叉验证）：A=端侧扒谱现实路径（结论：混音逐音符全行业不可达——Klangio 云端 $0.1-0.2/次且自认混录差、YourMT3+ 商业混音非主奏 F1<10%；可达=干净单音 70-90%/失真 riff 段落级/混音和弦级；升级件=htdemucs_6s guitar stem MIT+TabCNN/FretNet 系+UVR 剥人声；LLM 只做闭集任务）B=渲染播放（结论：alphaTab 全量启用=补完 F202 原始规格，+15MB，AlphaSynth 替换 KS 主路径，MPL 仅链接无约束）
+- **架构师方案 v1.0**（code-architect，逐文件核实）：时序层根修=逐拍跟踪+清洗+自适应量化（非换模型）；三决策用户已拍板：混音默认和弦级✓/模型按需下载✓/Phase 0+Phase A 并行先行✓；审查新发现 V4（ui→audio 违规）V5（audio→tab 违规）V6（注释失真）V7（GP 无拍号）全部入方案
+- **Phase 0 第一批已落地（本批 v0.2.32）**：BeatTracker（Ellis DP 逐拍）/NoteCleaner（R1-R4）/MidiTabConverter v2（插值量化+IOI 自适应+吸附容差）/TimedNote+BeatGrid 中立类型/TranscriptionEngine 改产 TimedNote（修 V5）/时序诊断日志；真机 Song 2 验证 129BPM/4拍/56 小节/22 和弦簇；单测 136→154 全绿
+- 待办（Phase 0 剩余）：P0-1 TranscriptionController（修 V4）/P0-7 InputClassifier+ChordTracker 和弦级输出/P0-8 置信度热图/P0-9 三小修（窗重叠+melodia_trick+抗混叠）；Phase A：alphaTab 渲染播放（A0 spike 前置）
+- 验证: 本地 154/154；APK 真机安装；对抗审查门禁进行中
+
 ## 2026-09-19 - Session: adb 真机全走查 + 返回键丢状态/BPM 默认值双修（v0.2.31）
 
 - **真机走查（小米 14，agent 全自动 adb）**：5 Tab 全过——调音器聆听态/节拍器运行/文本谱解析渲染点按试听/扒谱全链路/概念卡片展开/指板可视化（C 音六弦位置全对）/移调计算器（C→G=+7 半音）/我的空态，全绿无崩溃

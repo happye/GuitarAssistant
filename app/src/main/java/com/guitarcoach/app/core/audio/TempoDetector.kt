@@ -8,7 +8,7 @@ package com.guitarcoach.app.core.audio
 object TempoDetector {
 
     const val SAMPLE_RATE = 22050
-    private const val HOP = 512
+    const val HOP = 512
 
     fun detect(pcm: ShortArray, sampleRate: Int): Int? {
         require(sampleRate > 0)
@@ -17,25 +17,10 @@ object TempoDetector {
         // 1) 重采样到 22050 统一口径
         val mono = PcmResampler.toMonoRate(pcm, sampleRate, 1, SAMPLE_RATE)
 
-        // 2) RMS 能量包络
+        // 2-3) 能量包络 + onset 强度（与 BeatTracker 共用同一包络口径；平滑只用于 DP，见下）
         val frames = mono.size / HOP
         if (frames < 16) return null
-        val envelope = DoubleArray(frames)
-        for (f in 0 until frames) {
-            var sum = 0.0
-            for (i in 0 until HOP) {
-                val v = mono[f * HOP + i].toDouble()
-                sum += v * v
-            }
-            envelope[f] = kotlin.math.sqrt(sum / HOP)
-        }
-
-        // 3) onset 强度：半波整流差分
-        val onset = DoubleArray(frames)
-        for (f in 1 until frames) {
-            val d = envelope[f] - envelope[f - 1]
-            onset[f] = if (d > 0) d else 0.0
-        }
+        val onset = onsetEnvelope(mono, smooth = false) // 平滑会钝化脉冲自相关峰（实测 120 检成 117）
         val mean = onset.drop(1).average()
         if (mean < 1e-6) return null // 近静音
 
@@ -64,5 +49,32 @@ object TempoDetector {
         while (bpm < 70) bpm *= 2
         while (bpm > 180) bpm /= 2
         return bpm.toInt().coerceIn(40, 240)
+    }
+
+    /** RMS 能量包络 + 半波整流差分（onset 强度）。smooth=true 加 3 帧滑动平滑（BeatTracker DP 用，压单帧毛刺）。 */
+    internal fun onsetEnvelope(mono: ShortArray, smooth: Boolean = false): DoubleArray {
+        val frames = mono.size / HOP
+        val envelope = DoubleArray(frames.coerceAtLeast(1))
+        for (f in 0 until frames) {
+            var sum = 0.0
+            for (i in 0 until HOP) {
+                val v = mono[f * HOP + i].toDouble()
+                sum += v * v
+            }
+            envelope[f] = kotlin.math.sqrt(sum / HOP)
+        }
+        val onset = DoubleArray(frames.coerceAtLeast(1))
+        for (f in 1 until frames) {
+            val d = envelope[f] - envelope[f - 1]
+            onset[f] = if (d > 0) d else 0.0
+        }
+        if (smooth && frames > 4) {
+            val s = DoubleArray(frames)
+            for (f in 1 until frames - 1) s[f] = (onset[f - 1] + onset[f] + onset[f + 1]) / 3.0
+            s[0] = onset[0]
+            s[frames - 1] = onset[frames - 1]
+            return s
+        }
+        return onset
     }
 }
